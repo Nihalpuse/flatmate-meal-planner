@@ -9,7 +9,7 @@ import { TopNav } from "./top-nav";
 test("renders the brand and all destinations", () => {
   render(<TopNav groupName="Flat 302" />);
   expect(screen.getByText(/Flat 302/)).toBeInTheDocument();
-  for (const label of ["Dashboard", "Pantry", "Voting", "History"]) {
+  for (const label of ["Dashboard", "Pantry", "History", "Settings"]) {
     expect(screen.getByRole("link", { name: new RegExp(label, "i") })).toBeInTheDocument();
   }
 });

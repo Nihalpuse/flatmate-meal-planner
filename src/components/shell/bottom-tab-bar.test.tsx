@@ -7,7 +7,7 @@ import { BottomTabBar } from "./bottom-tab-bar";
 
 test("renders all four destinations", () => {
   render(<BottomTabBar />);
-  for (const label of ["Dashboard", "Pantry", "Voting", "History"]) {
+  for (const label of ["Dashboard", "Pantry", "History", "Settings"]) {
     expect(screen.getByText(label)).toBeInTheDocument();
   }
 });

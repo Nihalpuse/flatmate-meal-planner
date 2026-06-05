@@ -6,8 +6,8 @@ test("exposes the four core destinations in order", () => {
   expect(NAV_ITEMS.map((i) => i.href)).toEqual([
     "/dashboard",
     "/pantry",
-    "/voting",
     "/history",
+    "/settings",
   ]);
 });
 
