@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/dashboard" }));
+vi.mock("@/app/(auth)/actions", () => ({ signOut: vi.fn() }));
 
 import { TopNav } from "./top-nav";
 
