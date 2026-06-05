@@ -11,7 +11,7 @@ export function TopNav({ groupName }: { groupName: string }) {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-40 hidden border-b border-[var(--glass-border)] bg-[var(--glass-bg)] backdrop-blur-md md:block">
+    <header className="sticky top-0 z-40 hidden border-b border-[var(--glass-border)] bg-card supports-[backdrop-filter]:bg-[var(--glass-bg)] supports-[backdrop-filter]:backdrop-blur-md md:block">
       <div className="mx-auto flex max-w-4xl items-center gap-6 px-4 py-3">
         <span className="font-extrabold">🍛 {groupName}</span>
         <nav aria-label="Primary" className="flex items-center gap-4 text-sm">
