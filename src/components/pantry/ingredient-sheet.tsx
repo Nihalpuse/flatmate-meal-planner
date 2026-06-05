@@ -5,7 +5,7 @@ import { useActionState, useEffect, useRef } from "react";
 import { saveIngredient, type PantryState } from "@/app/(protected)/pantry/actions";
 import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/ui/glass-card";
-import type { Ingredient } from "@/types/database";
+import type { Ingredient } from "@/db/schema";
 
 const initial: PantryState = {};
 

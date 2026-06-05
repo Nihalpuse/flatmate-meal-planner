@@ -5,7 +5,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { filterIngredients } from "@/lib/pantry/filter";
-import type { Ingredient } from "@/types/database";
+import type { Ingredient } from "@/db/schema";
 
 import { IngredientRow } from "./ingredient-row";
 import { IngredientSheet } from "./ingredient-sheet";

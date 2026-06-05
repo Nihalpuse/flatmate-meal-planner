@@ -9,8 +9,8 @@ vi.mock("@/app/(protected)/pantry/actions", () => ({
 import { IngredientRow } from "./ingredient-row";
 
 const base = {
-  id: "1", group_id: "g", name: "Potato", quantity: 2, unit: "kg",
-  available: true, created_at: "", updated_at: "",
+  id: "1", groupId: "g", name: "Potato", quantity: 2, unit: "kg",
+  available: true, createdAt: new Date(), updatedAt: new Date(),
 };
 
 test("renders name and quantity", () => {

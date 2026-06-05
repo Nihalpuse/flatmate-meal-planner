@@ -7,7 +7,7 @@ import { deleteIngredient, setAvailability } from "@/app/(protected)/pantry/acti
 import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/ui/glass-card";
 import { cn } from "@/lib/utils";
-import type { Ingredient } from "@/types/database";
+import type { Ingredient } from "@/db/schema";
 
 export function IngredientRow({
   ingredient,

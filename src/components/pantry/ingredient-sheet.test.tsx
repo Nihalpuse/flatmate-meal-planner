@@ -13,8 +13,8 @@ test("renders an add form with empty fields", () => {
 
 test("prefills fields when editing", () => {
   const ing = {
-    id: "1", group_id: "g", name: "Rice", quantity: 5, unit: "kg",
-    available: true, created_at: "", updated_at: "",
+    id: "1", groupId: "g", name: "Rice", quantity: 5, unit: "kg",
+    available: true, createdAt: new Date(), updatedAt: new Date(),
   };
   render(<IngredientSheet ingredient={ing} onClose={() => {}} />);
   expect(screen.getByRole("dialog", { name: /edit ingredient/i })).toBeInTheDocument();

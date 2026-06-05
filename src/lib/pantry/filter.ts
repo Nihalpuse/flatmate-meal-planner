@@ -1,4 +1,4 @@
-import type { Ingredient } from "@/types/database";
+import type { Ingredient } from "@/db/schema";
 
 /** Case-insensitive substring match on ingredient name. */
 export function filterIngredients(items: Ingredient[], query: string): Ingredient[] {
