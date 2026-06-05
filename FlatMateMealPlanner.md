@@ -428,10 +428,13 @@ create table ingredients (
   unit       text,
   available  boolean not null default true,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  unique (group_id, lower(name))                     -- no duplicate ingredient names
+  updated_at timestamptz not null default now()
 );
 
+-- Case-insensitive uniqueness must be an expression index, not an inline
+-- UNIQUE constraint (Postgres disallows expressions in table constraints).
+create unique index ingredients_group_lower_name_idx
+  on ingredients (group_id, lower(name));
 create index ingredients_group_idx on ingredients (group_id);
 ```
 
