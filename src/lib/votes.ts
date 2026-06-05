@@ -114,6 +114,15 @@ export async function castVoteForUser(
       target: [votes.sessionId, votes.userId],
       set: { suggestionId },
     });
+
+  // Move the session into "voting" on the first vote so regenerate (which
+  // requires status "open") can no longer cascade-delete cast votes.
+  if (session.status === "open") {
+    await db
+      .update(mealSessions)
+      .set({ status: "voting" })
+      .where(eq(mealSessions.id, sessionId));
+  }
   return null;
 }
 
