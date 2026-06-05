@@ -1,6 +1,6 @@
 import { randomInt } from "node:crypto";
 
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { groupMembers, groups } from "@/db/schema";
@@ -82,4 +82,34 @@ export async function joinGroupForUser(
     .onConflictDoNothing({ target: [groupMembers.groupId, groupMembers.userId] });
 
   return group.id;
+}
+
+export interface GroupContext {
+  id: string;
+  name: string;
+  role: "admin" | "member";
+  memberCount: number;
+}
+
+/** The user's active group with their role and the member count. */
+export async function getGroupContext(userId: string): Promise<GroupContext | null> {
+  const [membership] = await db
+    .select({
+      id: groups.id,
+      name: groups.name,
+      role: groupMembers.role,
+    })
+    .from(groupMembers)
+    .innerJoin(groups, eq(groupMembers.groupId, groups.id))
+    .where(eq(groupMembers.userId, userId))
+    .orderBy(asc(groupMembers.joinedAt))
+    .limit(1);
+  if (!membership) return null;
+
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(groupMembers)
+    .where(eq(groupMembers.groupId, membership.id));
+
+  return { ...membership, memberCount: count };
 }
