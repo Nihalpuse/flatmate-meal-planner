@@ -1,10 +1,13 @@
-export default function PantryPage() {
-  return (
-    <section className="space-y-2">
-      <h1 className="text-2xl font-semibold">Pantry</h1>
-      <p className="text-muted-foreground text-sm">
-        Add, edit, and toggle availability of ingredients.
-      </p>
-    </section>
-  );
+import { PantryView } from "@/components/pantry/pantry-view";
+import { createClient } from "@/lib/supabase/server";
+
+export default async function PantryPage() {
+  const supabase = await createClient();
+  // RLS scopes ingredients to the current user's group(s).
+  const { data: ingredients } = await supabase
+    .from("ingredients")
+    .select("*")
+    .order("name", { ascending: true });
+
+  return <PantryView ingredients={ingredients ?? []} />;
 }
