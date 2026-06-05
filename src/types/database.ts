@@ -135,5 +135,9 @@ export interface Database {
       session_status: SessionStatus;
       meal_type: MealType;
     };
+    Functions: {
+      create_group: { Args: { group_name: string }; Returns: string };
+      join_group: { Args: { invite_code: string }; Returns: string | null };
+    };
   };
 }
