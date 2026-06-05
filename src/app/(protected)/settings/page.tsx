@@ -1,10 +1,15 @@
-export default function SettingsPage() {
-  return (
-    <section className="space-y-2">
-      <h1 className="text-2xl font-semibold">Settings</h1>
-      <p className="text-muted-foreground text-sm">
-        Manage group info, members, and invite codes.
-      </p>
-    </section>
-  );
+import { redirect } from "next/navigation";
+
+import { auth } from "@/auth";
+import { SettingsView } from "@/components/settings/settings-view";
+import { getGroupSettings } from "@/lib/settings";
+
+export default async function SettingsPage() {
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+
+  const settings = await getGroupSettings(session.user.id);
+  if (!settings) redirect("/onboarding");
+
+  return <SettingsView settings={settings} />;
 }
