@@ -11,7 +11,7 @@ export type MemberRole = "admin" | "member";
 export type SessionStatus = "open" | "voting" | "finalized" | "cancelled";
 export type MealType = "lunch" | "dinner";
 
-export interface Profile {
+export type Profile = {
   id: string;
   name: string | null;
   email: string | null;
@@ -19,7 +19,7 @@ export interface Profile {
   created_at: string;
 }
 
-export interface Group {
+export type Group = {
   id: string;
   name: string;
   invite_code: string;
@@ -28,7 +28,7 @@ export interface Group {
   updated_at: string;
 }
 
-export interface GroupMember {
+export type GroupMember = {
   id: string;
   group_id: string;
   user_id: string;
@@ -36,7 +36,7 @@ export interface GroupMember {
   joined_at: string;
 }
 
-export interface Ingredient {
+export type Ingredient = {
   id: string;
   group_id: string;
   name: string;
@@ -47,7 +47,7 @@ export interface Ingredient {
   updated_at: string;
 }
 
-export interface MealSession {
+export type MealSession = {
   id: string;
   group_id: string;
   session_date: string;
@@ -56,7 +56,7 @@ export interface MealSession {
   created_at: string;
 }
 
-export interface MealSuggestion {
+export type MealSuggestion = {
   id: string;
   session_id: string;
   meal_name: string;
@@ -65,7 +65,7 @@ export interface MealSuggestion {
   created_at: string;
 }
 
-export interface Vote {
+export type Vote = {
   id: string;
   session_id: string;
   suggestion_id: string;
@@ -73,7 +73,7 @@ export interface Vote {
   created_at: string;
 }
 
-export interface FinalizedMeal {
+export type FinalizedMeal = {
   id: string;
   session_id: string;
   suggestion_id: string | null;
@@ -82,7 +82,7 @@ export interface FinalizedMeal {
   finalized_at: string;
 }
 
-export interface MealHistoryRow {
+export type MealHistoryRow = {
   id: string;
   group_id: string;
   meal_name: string;
@@ -98,37 +98,57 @@ export interface MealHistoryRow {
 export interface Database {
   public: {
     Tables: {
-      profiles: { Row: Profile; Insert: Partial<Profile>; Update: Partial<Profile> };
-      groups: { Row: Group; Insert: Partial<Group>; Update: Partial<Group> };
+      profiles: {
+        Row: Profile;
+        Insert: Partial<Profile>;
+        Update: Partial<Profile>;
+        Relationships: [];
+      };
+      groups: {
+        Row: Group;
+        Insert: Partial<Group>;
+        Update: Partial<Group>;
+        Relationships: [];
+      };
       group_members: {
         Row: GroupMember;
         Insert: Partial<GroupMember>;
         Update: Partial<GroupMember>;
+        Relationships: [];
       };
       ingredients: {
         Row: Ingredient;
         Insert: Partial<Ingredient>;
         Update: Partial<Ingredient>;
+        Relationships: [];
       };
       meal_sessions: {
         Row: MealSession;
         Insert: Partial<MealSession>;
         Update: Partial<MealSession>;
+        Relationships: [];
       };
       meal_suggestions: {
         Row: MealSuggestion;
         Insert: Partial<MealSuggestion>;
         Update: Partial<MealSuggestion>;
+        Relationships: [];
       };
-      votes: { Row: Vote; Insert: Partial<Vote>; Update: Partial<Vote> };
+      votes: {
+        Row: Vote;
+        Insert: Partial<Vote>;
+        Update: Partial<Vote>;
+        Relationships: [];
+      };
       finalized_meals: {
         Row: FinalizedMeal;
         Insert: Partial<FinalizedMeal>;
         Update: Partial<FinalizedMeal>;
+        Relationships: [];
       };
     };
     Views: {
-      meal_history: { Row: MealHistoryRow };
+      meal_history: { Row: MealHistoryRow; Relationships: [] };
     };
     Enums: {
       member_role: MemberRole;
