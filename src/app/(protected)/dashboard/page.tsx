@@ -1,33 +1,47 @@
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
-import { DashboardView } from "@/components/dashboard/dashboard-view";
-import { getActiveGroup } from "@/lib/groups";
-import {
-  getAvailableIngredientNames,
-  getOrCreateTodaySessions,
-  getSessionSuggestions,
-} from "@/lib/sessions";
+import { DashboardView, type SessionBundle } from "@/components/dashboard/dashboard-view";
+import { getGroupContext } from "@/lib/groups";
+import { getAvailableIngredientNames, getOrCreateTodaySessions } from "@/lib/sessions";
+import { getFinalizedMeal, getSessionVoteState } from "@/lib/votes";
+import type { MealSession } from "@/db/schema";
+
+async function bundle(session: MealSession, userId: string): Promise<SessionBundle> {
+  const [state, finalized] = await Promise.all([
+    getSessionVoteState(session.id, userId),
+    getFinalizedMeal(session.id),
+  ]);
+  return {
+    session,
+    suggestions: state.suggestions,
+    totalVoters: state.totalVoters,
+    finalized,
+  };
+}
 
 export default async function DashboardPage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  const authed = await auth();
+  if (!authed?.user?.id) redirect("/login");
+  const userId = authed.user.id;
 
-  const group = await getActiveGroup(session.user.id);
+  const group = await getGroupContext(userId);
   if (!group) redirect("/onboarding");
 
   const { lunch, dinner } = await getOrCreateTodaySessions(group.id);
-  const [lunchSuggestions, dinnerSuggestions, available] = await Promise.all([
-    getSessionSuggestions(lunch.id),
-    getSessionSuggestions(dinner.id),
+  const [lunchBundle, dinnerBundle, available] = await Promise.all([
+    bundle(lunch, userId),
+    bundle(dinner, userId),
     getAvailableIngredientNames(group.id),
   ]);
 
   return (
     <DashboardView
       available={available}
-      lunch={{ session: lunch, suggestions: lunchSuggestions }}
-      dinner={{ session: dinner, suggestions: dinnerSuggestions }}
+      isAdmin={group.role === "admin"}
+      memberCount={group.memberCount}
+      lunch={lunchBundle}
+      dinner={dinnerBundle}
     />
   );
 }
