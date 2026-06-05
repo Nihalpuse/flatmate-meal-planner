@@ -4,7 +4,7 @@ import { expect, test, vi } from "vitest";
 
 const setTheme = vi.fn();
 vi.mock("next-themes", () => ({
-  useTheme: () => ({ theme: "light", setTheme }),
+  useTheme: () => ({ resolvedTheme: "light", setTheme }),
 }));
 
 import { ThemeToggle } from "./theme-toggle";
