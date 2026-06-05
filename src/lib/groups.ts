@@ -1,3 +1,5 @@
+import { randomInt } from "node:crypto";
+
 import { asc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -25,7 +27,7 @@ const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no ambiguous chars
 function inviteCode(length = 6): string {
   let code = "";
   for (let i = 0; i < length; i += 1) {
-    code += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)];
+    code += CODE_ALPHABET[randomInt(CODE_ALPHABET.length)];
   }
   return code;
 }
