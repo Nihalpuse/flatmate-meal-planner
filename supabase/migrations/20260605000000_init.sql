@@ -16,10 +16,14 @@ create table profiles (
   created_at timestamptz not null default now()
 );
 
-create function handle_new_user()
-returns trigger language plpgsql security definer as $$
+create or replace function handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
 begin
-  insert into profiles (id, email, name, avatar_url)
+  insert into public.profiles (id, email, name, avatar_url)
   values (
     new.id,
     new.email,

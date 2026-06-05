@@ -369,11 +369,17 @@ create table profiles (
   created_at timestamptz not null default now()
 );
 
--- Auto-create a profile row when a user signs up
-create function handle_new_user()
-returns trigger language plpgsql security definer as $$
+-- Auto-create a profile row when a user signs up.
+-- security definer + explicit search_path + schema-qualified table so the
+-- trigger resolves `profiles` when fired by Supabase Auth.
+create or replace function handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
 begin
-  insert into profiles (id, email, name, avatar_url)
+  insert into public.profiles (id, email, name, avatar_url)
   values (
     new.id,
     new.email,
