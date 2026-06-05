@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { AppShell } from "@/components/shell/app-shell";
+import { getActiveGroup } from "@/lib/groups";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function ProtectedLayout({
@@ -12,11 +13,10 @@ export default async function ProtectedLayout({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
-  if (!user) {
-    redirect("/login");
-  }
+  const group = await getActiveGroup(supabase);
+  if (!group) redirect("/onboarding");
 
-  // Group name is hardcoded until Plan 2 (Auth & Onboarding) wires real groups.
-  return <AppShell groupName="Flat 302">{children}</AppShell>;
+  return <AppShell groupName={group.name}>{children}</AppShell>;
 }

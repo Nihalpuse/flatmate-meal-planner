@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { LogoutButton } from "@/components/auth/logout-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NAV_ITEMS, isActive } from "@/lib/nav";
 import { cn } from "@/lib/utils";
@@ -32,8 +33,9 @@ export function TopNav({ groupName }: { groupName: string }) {
             );
           })}
         </nav>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-1">
           <ThemeToggle />
+          <LogoutButton />
         </div>
       </div>
     </header>

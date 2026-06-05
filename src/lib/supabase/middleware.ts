@@ -10,6 +10,7 @@ const PROTECTED_PREFIXES = [
   "/voting",
   "/history",
   "/settings",
+  "/onboarding",
 ];
 
 /**
