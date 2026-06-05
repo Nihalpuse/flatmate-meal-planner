@@ -18,7 +18,7 @@ begin
   loop
     code := upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 6));
     begin
-      insert into groups (name, invite_code, created_by)
+      insert into public.groups (name, invite_code, created_by)
       values (trim(group_name), code, auth.uid())
       returning id into new_id;
       exit;
@@ -28,7 +28,7 @@ begin
     end;
   end loop;
 
-  insert into group_members (group_id, user_id, role)
+  insert into public.group_members (group_id, user_id, role)
   values (new_id, auth.uid(), 'admin');
 
   return new_id;
@@ -50,14 +50,14 @@ begin
   end if;
 
   select id into gid
-  from groups
-  where groups.invite_code = upper(trim(join_group.invite_code));
+  from public.groups
+  where public.groups.invite_code = upper(trim(join_group.invite_code));
 
   if gid is null then
     return null;
   end if;
 
-  insert into group_members (group_id, user_id, role)
+  insert into public.group_members (group_id, user_id, role)
   values (gid, auth.uid(), 'member')
   on conflict (group_id, user_id) do nothing;
 
