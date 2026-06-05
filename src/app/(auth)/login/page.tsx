@@ -1,10 +1,12 @@
-export default function LoginPage() {
-  return (
-    <div className="space-y-2 text-center">
-      <h1 className="text-2xl font-semibold">Log in</h1>
-      <p className="text-muted-foreground text-sm">
-        Auth form coming soon (Google + email/password).
-      </p>
-    </div>
-  );
+import { redirect } from "next/navigation";
+
+import { LoginForm } from "@/components/auth/login-form";
+import { createClient } from "@/lib/supabase/server";
+
+export default async function LoginPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) redirect("/dashboard");
+
+  return <LoginForm />;
 }
