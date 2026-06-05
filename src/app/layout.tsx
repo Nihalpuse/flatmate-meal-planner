@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Space_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import { AppToaster } from "@/components/ui/toast";
 
 const sans = Plus_Jakarta_Sans({
   variable: "--font-sans",
@@ -41,6 +42,7 @@ export default function RootLayout({
         >
           {children}
         </ThemeProvider>
+        <AppToaster />
       </body>
     </html>
   );

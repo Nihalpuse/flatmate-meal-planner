@@ -31,6 +31,10 @@ export async function generateSuggestions(sessionId: string): Promise<GenerateSt
     .limit(1);
   if (!mealSession) return { error: "Session not found" };
 
+  if (mealSession.status !== "open") {
+    return { error: "Voting has started — regenerate is locked." };
+  }
+
   const [available, recent] = await Promise.all([
     getAvailableIngredientNames(group.id),
     getRecentMealNames(group.id, 10),
