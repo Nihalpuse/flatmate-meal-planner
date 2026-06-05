@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { auth } from "@/auth";
 import { getActiveGroup } from "@/lib/groups";
 import { ingredientSchema } from "@/lib/pantry/validation";
 import { createClient } from "@/lib/supabase/server";
@@ -36,7 +37,9 @@ export async function saveIngredient(
       .eq("id", id);
     if (error) return { error: error.message };
   } else {
-    const group = await getActiveGroup(supabase);
+    const session = await auth();
+    if (!session?.user?.id) return { error: "No active group" };
+    const group = await getActiveGroup(session.user.id);
     if (!group) return { error: "No active group" };
     const { error } = await supabase.from("ingredients").insert({
       group_id: group.id,
