@@ -17,7 +17,7 @@ const mono = Space_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FlatMate Meal Planner",
+  title: "Aaj Kya Banega?",
   description:
     "Decide what to cook in under 2 minutes — vote, get AI meal suggestions, and avoid repeats.",
 };
