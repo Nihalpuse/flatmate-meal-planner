@@ -1,3 +1,7 @@
+// Module side effects in @/env read these — set before any imports.
+process.env.DATABASE_URL ??= "postgres://test:test@localhost:5432/test";
+process.env.AUTH_SECRET ??= "test-secret";
+
 import "@testing-library/jest-dom/vitest";
 import { afterEach, vi } from "vitest";
 import { cleanup } from "@testing-library/react";

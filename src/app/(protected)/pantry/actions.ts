@@ -6,14 +6,11 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { ingredients } from "@/db/schema";
+import { isUniqueViolation } from "@/lib/db-errors";
 import { getActiveGroup } from "@/lib/groups";
 import { ingredientSchema } from "@/lib/pantry/validation";
 
 export type PantryState = { error?: string; ok?: boolean };
-
-function isUniqueViolation(error: unknown): boolean {
-  return (error as { code?: string } | null)?.code === "23505";
-}
 
 /** The current user's active group id, or null if unauthenticated / no group. */
 async function activeGroupId(): Promise<string | null> {

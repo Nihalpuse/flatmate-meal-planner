@@ -8,6 +8,7 @@ import { signIn as authSignIn, signOut as authSignOut } from "@/auth";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { signInSchema, signUpSchema } from "@/lib/auth/validation";
+import { isUniqueViolation } from "@/lib/db-errors";
 
 export type AuthState = { error?: string; message?: string };
 
@@ -55,11 +56,18 @@ export async function signUp(
   }
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 10);
-  await db.insert(users).values({
-    name: parsed.data.name,
-    email: parsed.data.email,
-    password: passwordHash,
-  });
+  try {
+    await db.insert(users).values({
+      name: parsed.data.name,
+      email: parsed.data.email,
+      password: passwordHash,
+    });
+  } catch (error) {
+    if (isUniqueViolation(error)) {
+      return { error: "An account with this email already exists" };
+    }
+    throw error;
+  }
 
   try {
     await authSignIn("credentials", {

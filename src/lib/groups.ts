@@ -4,6 +4,7 @@ import { asc, eq, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { groupMembers, groups } from "@/db/schema";
+import { isUniqueViolation } from "@/lib/db-errors";
 
 export interface ActiveGroup {
   id: string;
@@ -30,10 +31,6 @@ function inviteCode(length = 6): string {
     code += CODE_ALPHABET[randomInt(CODE_ALPHABET.length)];
   }
   return code;
-}
-
-function isUniqueViolation(error: unknown): boolean {
-  return (error as { code?: string } | null)?.code === "23505";
 }
 
 /** Create a group with the user as admin (transaction; retries on code collision). */
