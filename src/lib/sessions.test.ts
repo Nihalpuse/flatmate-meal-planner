@@ -7,6 +7,9 @@ test("missingIngredients is a case-insensitive set difference", () => {
   expect(missingIngredients(["rice"], ["Rice"])).toEqual([]);
 });
 
-test("toDateString formats local Y-M-D", () => {
-  expect(toDateString(new Date(2026, 5, 5))).toBe("2026-06-05");
+test("toDateString formats Y-M-D in the given timezone", () => {
+  // 20:00 UTC on Jun 5 is already Jun 6, 01:30 in Kolkata.
+  const d = new Date("2026-06-05T20:00:00Z");
+  expect(toDateString(d, "Asia/Kolkata")).toBe("2026-06-06");
+  expect(toDateString(d, "UTC")).toBe("2026-06-05");
 });

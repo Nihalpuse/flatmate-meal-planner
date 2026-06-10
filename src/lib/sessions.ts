@@ -16,12 +16,15 @@ export function missingIngredients(required: string[], available: string[]): str
   return required.filter((r) => !have.has(r.trim().toLowerCase()));
 }
 
-/** Local YYYY-MM-DD for the given date. */
-export function toDateString(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+/** YYYY-MM-DD for the given instant in the given IANA timezone. */
+export function toDateString(date: Date, timeZone: string): string {
+  // en-CA formats as YYYY-MM-DD.
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
 }
 
 async function getOrCreateSession(
@@ -49,8 +52,9 @@ async function getOrCreateSession(
 
 export async function getOrCreateTodaySessions(
   groupId: string,
+  timezone: string,
 ): Promise<{ lunch: MealSession; dinner: MealSession }> {
-  const date = toDateString(new Date());
+  const date = toDateString(new Date(), timezone);
   const [lunch, dinner] = await Promise.all([
     getOrCreateSession(groupId, date, "lunch"),
     getOrCreateSession(groupId, date, "dinner"),

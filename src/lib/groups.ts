@@ -84,6 +84,7 @@ export async function joinGroupForUser(
 export interface GroupContext {
   id: string;
   name: string;
+  timezone: string;
   role: "admin" | "member";
   memberCount: number;
 }
@@ -94,6 +95,7 @@ export async function getGroupContext(userId: string): Promise<GroupContext | nu
     .select({
       id: groups.id,
       name: groups.name,
+      timezone: groups.timezone,
       role: groupMembers.role,
     })
     .from(groupMembers)

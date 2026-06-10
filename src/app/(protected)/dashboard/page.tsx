@@ -28,7 +28,7 @@ export default async function DashboardPage() {
   const group = await getGroupContext(userId);
   if (!group) redirect("/onboarding");
 
-  const { lunch, dinner } = await getOrCreateTodaySessions(group.id);
+  const { lunch, dinner } = await getOrCreateTodaySessions(group.id, group.timezone);
   const [lunchBundle, dinnerBundle, available] = await Promise.all([
     bundle(lunch, userId),
     bundle(dinner, userId),
