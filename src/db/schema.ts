@@ -57,29 +57,12 @@ export const accounts = pgTable(
   (t) => [primaryKey({ columns: [t.provider, t.providerAccountId] })],
 );
 
-export const sessions = pgTable("sessions", {
-  sessionToken: text("session_token").primaryKey(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  expires: timestamp("expires", { mode: "date" }).notNull(),
-});
-
-export const verificationTokens = pgTable(
-  "verification_tokens",
-  {
-    identifier: text("identifier").notNull(),
-    token: text("token").notNull(),
-    expires: timestamp("expires", { mode: "date" }).notNull(),
-  },
-  (t) => [primaryKey({ columns: [t.identifier, t.token] })],
-);
-
 // ---------- app tables ----------
 export const groups = pgTable("groups", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
   inviteCode: text("invite_code").notNull().unique(),
+  timezone: text("timezone").notNull().default("Asia/Kolkata"),
   createdBy: text("created_by")
     .notNull()
     .references(() => users.id),
@@ -135,6 +118,7 @@ export const mealSessions = pgTable(
     sessionDate: date("session_date").notNull(),
     mealType: mealType("meal_type").notNull(),
     status: sessionStatus("status").notNull().default("open"),
+    lastGeneratedAt: timestamp("last_generated_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (t) => [

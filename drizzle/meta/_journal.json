@@ -8,6 +8,13 @@
       "when": 1780660072743,
       "tag": "0000_right_enchantress",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1781118730841,
+      "tag": "0001_cold_madrox",
+      "breakpoints": true
     }
   ]
 }

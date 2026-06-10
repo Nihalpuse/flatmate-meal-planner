@@ -15,7 +15,7 @@ import { DashboardView } from "./dashboard-view";
 const sv = (id: string, name: string, req: string[], votes: number, mine = false) => ({
   id, mealName: name, requiredIngredients: req, votes, mine,
 });
-const sessBase = { groupId: "g", sessionDate: "2026-06-05", status: "open" as const, createdAt: new Date() };
+const sessBase = { groupId: "g", sessionDate: "2026-06-05", status: "open" as const, createdAt: new Date(), lastGeneratedAt: null };
 const lunch = {
   session: { id: "l", mealType: "lunch" as const, ...sessBase },
   suggestions: [sv("1", "Egg Fried Rice", ["egg", "rice"], 2, true), sv("2", "Paneer Masala", ["paneer"], 0)],
