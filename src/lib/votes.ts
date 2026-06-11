@@ -78,15 +78,6 @@ export async function getSessionVoteState(
   };
 }
 
-async function sessionInGroup(sessionId: string, groupId: string) {
-  const [s] = await db
-    .select()
-    .from(mealSessions)
-    .where(and(eq(mealSessions.id, sessionId), eq(mealSessions.groupId, groupId)))
-    .limit(1);
-  return s ?? null;
-}
-
 /** Cast or move the user's single vote for a session. Returns an error string or null. */
 export async function castVoteForUser(
   userId: string,
@@ -94,36 +85,46 @@ export async function castVoteForUser(
   sessionId: string,
   suggestionId: string,
 ): Promise<string | null> {
-  const session = await sessionInGroup(sessionId, groupId);
-  if (!session) return "Session not found";
-  if (session.status === "finalized") return "Voting is closed";
+  return db.transaction(async (tx) => {
+    // Row lock: serializes against finalize and regenerate for this session.
+    const [session] = await tx
+      .select()
+      .from(mealSessions)
+      .where(and(eq(mealSessions.id, sessionId), eq(mealSessions.groupId, groupId)))
+      .limit(1)
+      .for("update");
+    if (!session) return "Session not found";
+    if (session.status === "finalized" || session.status === "cancelled") {
+      return "Voting is closed";
+    }
 
-  const [sug] = await db
-    .select({ id: mealSuggestions.id })
-    .from(mealSuggestions)
-    .where(
-      and(eq(mealSuggestions.id, suggestionId), eq(mealSuggestions.sessionId, sessionId)),
-    )
-    .limit(1);
-  if (!sug) return "Invalid choice";
+    const [sug] = await tx
+      .select({ id: mealSuggestions.id })
+      .from(mealSuggestions)
+      .where(
+        and(eq(mealSuggestions.id, suggestionId), eq(mealSuggestions.sessionId, sessionId)),
+      )
+      .limit(1);
+    if (!sug) return "Invalid choice";
 
-  await db
-    .insert(votes)
-    .values({ sessionId, suggestionId, userId })
-    .onConflictDoUpdate({
-      target: [votes.sessionId, votes.userId],
-      set: { suggestionId },
-    });
+    // Flip to "voting" before the vote lands so regenerate (which requires
+    // status "open" under the same row lock) can never cascade-delete it.
+    if (session.status === "open") {
+      await tx
+        .update(mealSessions)
+        .set({ status: "voting" })
+        .where(eq(mealSessions.id, sessionId));
+    }
 
-  // Move the session into "voting" on the first vote so regenerate (which
-  // requires status "open") can no longer cascade-delete cast votes.
-  if (session.status === "open") {
-    await db
-      .update(mealSessions)
-      .set({ status: "voting" })
-      .where(eq(mealSessions.id, sessionId));
-  }
-  return null;
+    await tx
+      .insert(votes)
+      .values({ sessionId, suggestionId, userId })
+      .onConflictDoUpdate({
+        target: [votes.sessionId, votes.userId],
+        set: { suggestionId },
+      });
+    return null;
+  });
 }
 
 /** Admin-only finalize: pick the winner and lock the session. Returns error or null. */
@@ -134,29 +135,36 @@ export async function finalizeSessionForGroup(
   sessionId: string,
 ): Promise<string | null> {
   if (!isAdmin) return "Only an admin can finalize";
-  const session = await sessionInGroup(sessionId, groupId);
-  if (!session) return "Session not found";
-  if (session.status === "finalized") return "Already finalized";
+  return db.transaction(async (tx) => {
+    const [session] = await tx
+      .select()
+      .from(mealSessions)
+      .where(and(eq(mealSessions.id, sessionId), eq(mealSessions.groupId, groupId)))
+      .limit(1)
+      .for("update");
+    if (!session) return "Session not found";
+    if (session.status === "finalized") return "Already finalized";
 
-  const rows = await db
-    .select({
-      id: mealSuggestions.id,
-      mealName: mealSuggestions.mealName,
-      createdAt: mealSuggestions.createdAt,
-      votes: sql<number>`count(${votes.id})::int`,
-    })
-    .from(mealSuggestions)
-    .leftJoin(votes, eq(votes.suggestionId, mealSuggestions.id))
-    .where(eq(mealSuggestions.sessionId, sessionId))
-    .groupBy(mealSuggestions.id);
+    // Tally inside the transaction: the row lock blocks concurrent casts,
+    // so the count cannot change between tally and status flip.
+    const rows = await tx
+      .select({
+        id: mealSuggestions.id,
+        mealName: mealSuggestions.mealName,
+        createdAt: mealSuggestions.createdAt,
+        votes: sql<number>`count(${votes.id})::int`,
+      })
+      .from(mealSuggestions)
+      .leftJoin(votes, eq(votes.suggestionId, mealSuggestions.id))
+      .where(eq(mealSuggestions.sessionId, sessionId))
+      .groupBy(mealSuggestions.id);
 
-  const winnerId = pickWinner(
-    rows.map((r) => ({ id: r.id, votes: r.votes, createdAt: r.createdAt })),
-  );
-  if (!winnerId) return "No votes yet";
-  const winner = rows.find((r) => r.id === winnerId)!;
+    const winnerId = pickWinner(
+      rows.map((r) => ({ id: r.id, votes: r.votes, createdAt: r.createdAt })),
+    );
+    if (!winnerId) return "No votes yet";
+    const winner = rows.find((r) => r.id === winnerId)!;
 
-  await db.transaction(async (tx) => {
     await tx.insert(finalizedMeals).values({
       sessionId,
       suggestionId: winner.id,
@@ -167,8 +175,8 @@ export async function finalizeSessionForGroup(
       .update(mealSessions)
       .set({ status: "finalized" })
       .where(eq(mealSessions.id, sessionId));
+    return null;
   });
-  return null;
 }
 
 export async function getFinalizedMeal(
