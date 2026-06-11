@@ -3,7 +3,6 @@ import type { NextAuthConfig } from "next-auth";
 const PROTECTED_PREFIXES = [
   "/dashboard",
   "/pantry",
-  "/voting",
   "/history",
   "/settings",
   "/onboarding",

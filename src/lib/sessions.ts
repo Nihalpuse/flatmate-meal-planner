@@ -91,7 +91,7 @@ export async function getAvailableIngredientNames(groupId: string): Promise<stri
 
 export async function getRecentMealNames(groupId: string, limit = 10): Promise<string[]> {
   const rows = await db
-    .select({ name: finalizedMeals.mealName, at: finalizedMeals.finalizedAt })
+    .select({ name: finalizedMeals.mealName })
     .from(finalizedMeals)
     .innerJoin(mealSessions, eq(finalizedMeals.sessionId, mealSessions.id))
     .where(eq(mealSessions.groupId, groupId))
