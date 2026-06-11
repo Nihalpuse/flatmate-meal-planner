@@ -9,6 +9,8 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    // PGlite (WASM Postgres) boot + migrate is slow under parallel load.
+    testTimeout: 30_000,
   },
   resolve: {
     alias: { "@": resolve(__dirname, "./src") },

@@ -1,14 +1,12 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
-import { db } from "@/db";
-import { mealSessions, mealSuggestions } from "@/db/schema";
 import { generateMealSuggestions } from "@/lib/ai/gemini";
 import { getActiveGroup } from "@/lib/groups";
+import { claimGeneration, replaceSuggestions } from "@/lib/suggestions";
 import {
   getAvailableIngredientNames,
   getRecentMealNames,
@@ -23,17 +21,10 @@ export async function generateSuggestions(sessionId: string): Promise<GenerateSt
   const group = await getActiveGroup(session.user.id);
   if (!group) redirect("/onboarding");
 
-  // Authorize: the session must belong to the user's group.
-  const [mealSession] = await db
-    .select()
-    .from(mealSessions)
-    .where(and(eq(mealSessions.id, sessionId), eq(mealSessions.groupId, group.id)))
-    .limit(1);
-  if (!mealSession) return { error: "Session not found" };
-
-  if (mealSession.status !== "open") {
-    return { error: "Voting has started — regenerate is locked." };
-  }
+  // Claim first: enforces group ownership, "open" status, and the cooldown
+  // before we spend an AI call.
+  const claim = await claimGeneration(sessionId, group.id);
+  if ("error" in claim) return { error: claim.error };
 
   const [available, recent] = await Promise.all([
     getAvailableIngredientNames(group.id),
@@ -45,23 +36,14 @@ export async function generateSuggestions(sessionId: string): Promise<GenerateSt
     suggestions = await generateMealSuggestions({
       availableIngredients: available,
       recentMeals: recent,
-      mealType: mealSession.mealType,
+      mealType: claim.session.mealType,
     });
   } catch {
     return { error: "Could not reach the AI. Please try again." };
   }
 
-  await db.delete(mealSuggestions).where(eq(mealSuggestions.sessionId, sessionId));
-  if (suggestions.length > 0) {
-    await db.insert(mealSuggestions).values(
-      suggestions.map((s) => ({
-        sessionId,
-        mealName: s.mealName,
-        requiredIngredients: s.requiredIngredients,
-        aiGenerated: true,
-      })),
-    );
-  }
+  const replaceError = await replaceSuggestions(sessionId, suggestions);
+  if (replaceError) return { error: replaceError };
 
   revalidatePath("/dashboard");
   return {};
