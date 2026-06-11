@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { CountChip } from "@/components/ui/count-chip";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Kicker } from "@/components/ui/kicker";
-import { missingIngredients } from "@/lib/sessions";
+import { missingIngredients } from "@/lib/meal-utils";
 import type { SuggestionVote } from "@/lib/votes";
 import type { MealSession } from "@/db/schema";
 import { cn } from "@/lib/utils";
