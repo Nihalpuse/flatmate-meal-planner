@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 
 const initial: OnboardingState = {};
 
-export function JoinGroupForm() {
+export function JoinGroupForm({ defaultCode }: { defaultCode?: string }) {
   const [state, formAction, pending] = useActionState(joinGroup, initial);
 
   return (
@@ -16,6 +16,7 @@ export function JoinGroupForm() {
         <label htmlFor="code" className="text-sm font-semibold">Invite code</label>
         <input
           id="code" name="code" type="text" required placeholder="ABC123"
+          defaultValue={defaultCode}
           className="w-full rounded-lg border bg-card px-3 py-2 uppercase"
         />
       </div>
