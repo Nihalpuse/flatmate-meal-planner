@@ -1,28 +1,39 @@
 "use client";
 
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Sparkles } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import type { ParsedItem } from "@/lib/ai/parse-purchase";
 import { filterIngredients } from "@/lib/pantry/filter";
 import type { Ingredient } from "@/db/schema";
 
 import { IngredientRow } from "./ingredient-row";
 import { IngredientSheet } from "./ingredient-sheet";
+import { PurchaseInput } from "./purchase-input";
+import { PurchaseReview } from "./purchase-review";
 
 export function PantryView({ ingredients }: { ingredients: Ingredient[] }) {
   const [query, setQuery] = useState("");
   const [sheet, setSheet] = useState<{ editing: Ingredient | null } | null>(null);
+  const [textFlow, setTextFlow] = useState<
+    { step: "input" } | { step: "review"; items: ParsedItem[] } | null
+  >(null);
 
   const visible = filterIngredients(ingredients, query);
 
   return (
     <section className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-extrabold">Pantry</h1>
-        <Button onClick={() => setSheet({ editing: null })}>
-          <Plus className="size-4" /> Add
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setTextFlow({ step: "input" })}>
+            <Sparkles className="size-4" /> Add by text
+          </Button>
+          <Button onClick={() => setSheet({ editing: null })}>
+            <Plus className="size-4" /> Add
+          </Button>
+        </div>
       </div>
 
       <div className="relative">
@@ -58,6 +69,20 @@ export function PantryView({ ingredients }: { ingredients: Ingredient[] }) {
           key={sheet.editing?.id ?? "new"}
           ingredient={sheet.editing}
           onClose={() => setSheet(null)}
+        />
+      ) : null}
+
+      {textFlow?.step === "input" ? (
+        <PurchaseInput
+          onParsed={(items) => setTextFlow({ step: "review", items })}
+          onClose={() => setTextFlow(null)}
+        />
+      ) : null}
+      {textFlow?.step === "review" ? (
+        <PurchaseReview
+          items={textFlow.items}
+          existing={ingredients}
+          onClose={() => setTextFlow(null)}
         />
       ) : null}
     </section>

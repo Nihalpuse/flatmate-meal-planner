@@ -6,6 +6,8 @@ vi.mock("@/app/(protected)/pantry/actions", () => ({
   saveIngredient: vi.fn(),
   deleteIngredient: vi.fn(),
   setAvailability: vi.fn(),
+  parsePurchaseText: vi.fn(),
+  addPurchasedItems: vi.fn(),
 }));
 
 import { PantryView } from "./pantry-view";
@@ -20,7 +22,8 @@ test("lists ingredients and the add button", () => {
   expect(screen.getByRole("heading", { name: /pantry/i })).toBeInTheDocument();
   expect(screen.getByText("Potato")).toBeInTheDocument();
   expect(screen.getByText("Onion")).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: /add/i })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /^add$/i })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /add by text/i })).toBeInTheDocument();
 });
 
 test("filters the list as you search", async () => {
@@ -32,8 +35,14 @@ test("filters the list as you search", async () => {
 
 test("opens the add sheet from the add button", async () => {
   render(<PantryView ingredients={ings} />);
-  await userEvent.click(screen.getByRole("button", { name: /add/i }));
+  await userEvent.click(screen.getByRole("button", { name: /^add$/i }));
   expect(screen.getByRole("dialog", { name: /add ingredient/i })).toBeInTheDocument();
+});
+
+test("opens the add-by-text input modal", async () => {
+  render(<PantryView ingredients={[]} />);
+  await userEvent.click(screen.getByRole("button", { name: /add by text/i }));
+  expect(screen.getByRole("dialog", { name: /add pantry items by text/i })).toBeInTheDocument();
 });
 
 test("shows an empty state with no ingredients", () => {
