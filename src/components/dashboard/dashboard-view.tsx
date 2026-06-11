@@ -93,6 +93,7 @@ function SessionPanel({
   memberCount: number;
 }) {
   const [pending, start] = useTransition();
+  const [generating, setGenerating] = useState(false);
   const { session, suggestions, totalVoters, finalized } = bundle;
 
   if (session.status === "finalized" && finalized) {
@@ -132,9 +133,11 @@ function SessionPanel({
   }
 
   function runGenerate() {
+    setGenerating(true);
     start(async () => {
       const res = await generateSuggestions(session.id);
       if (res.error) toast.error(res.error);
+      setGenerating(false);
     });
   }
 
@@ -158,7 +161,15 @@ function SessionPanel({
         </Button>
       </div>
 
-      {suggestions.length === 0 ? (
+      {generating ? (
+        <ul className="space-y-2" aria-label="Generating suggestions">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <li key={i}>
+              <GlassCard className="h-14 animate-pulse" />
+            </li>
+          ))}
+        </ul>
+      ) : suggestions.length === 0 ? (
         <GlassCard className="text-muted-foreground text-sm">
           No suggestions yet. Tap Generate to get AI ideas from your pantry.
         </GlassCard>
