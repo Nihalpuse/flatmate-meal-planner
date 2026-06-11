@@ -9,6 +9,9 @@ vi.mock("@/app/(protected)/dashboard/vote-actions", () => ({
 }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
+const { refreshMock } = vi.hoisted(() => ({ refreshMock: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: refreshMock }) }));
+
 import { castVote } from "@/app/(protected)/dashboard/vote-actions";
 import { DashboardView } from "./dashboard-view";
 
@@ -62,4 +65,27 @@ test("finalized session shows the chosen meal and grocery list", () => {
   expect(screen.getByText(/Paneer Masala/)).toBeInTheDocument();
   // grocery list line shows the exact missing ingredient ("paneer")
   expect(screen.getByText("paneer")).toBeInTheDocument();
+});
+
+test("polls for updates while a session is undecided", () => {
+  vi.useFakeTimers();
+  refreshMock.mockClear();
+  render(<DashboardView {...props} />);
+  vi.advanceTimersByTime(9000);
+  expect(refreshMock).toHaveBeenCalled();
+  vi.useRealTimers();
+});
+
+test("does not poll once both sessions are finalized", () => {
+  vi.useFakeTimers();
+  refreshMock.mockClear();
+  const done = <T extends typeof lunch | typeof dinner>(b: T) => ({
+    ...b,
+    session: { ...b.session, status: "finalized" as const },
+    finalized: { mealName: "X" },
+  });
+  render(<DashboardView {...props} lunch={done(lunch)} dinner={done(dinner)} />);
+  vi.advanceTimersByTime(20000);
+  expect(refreshMock).not.toHaveBeenCalled();
+  vi.useRealTimers();
 });

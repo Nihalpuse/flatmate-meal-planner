@@ -1,7 +1,8 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { generateSuggestions } from "@/app/(protected)/dashboard/actions";
@@ -37,6 +38,18 @@ export function DashboardView({
 }) {
   const [tab, setTab] = useState<"lunch" | "dinner">("lunch");
   const active = tab === "lunch" ? lunch : dinner;
+
+  const router = useRouter();
+  const allSettled = Boolean(lunch.finalized && dinner.finalized);
+
+  // Flatmates vote from their own phones — poll so their votes show up live.
+  useEffect(() => {
+    if (allSettled) return;
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") router.refresh();
+    }, 8000);
+    return () => clearInterval(id);
+  }, [allSettled, router]);
 
   return (
     <section className="space-y-4">
