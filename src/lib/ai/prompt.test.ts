@@ -19,3 +19,12 @@ test("handles empty ingredient and recent lists", () => {
   expect(p).toMatch(/lunch/i);
   expect(p).toMatch(/none/i);
 });
+
+test("instructs the model to reuse exact pantry spellings", () => {
+  const p = buildSuggestionPrompt({
+    availableIngredients: ["rice"],
+    recentMeals: [],
+    mealType: "lunch",
+  });
+  expect(p).toMatch(/exact spelling from the available list/i);
+});

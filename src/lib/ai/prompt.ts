@@ -17,6 +17,7 @@ export function buildSuggestionPrompt(input: SuggestionInput): string {
     "Prefer dishes that mostly use the available ingredients; a few may need 1-2 extra common items.",
     `Recently eaten (do NOT repeat these): ${recent}.`,
     "For each dish list its key required ingredients as simple lowercase names.",
+    "When a required ingredient matches one of the available ingredients, use the exact spelling from the available list.",
     "Return ONLY JSON matching the requested schema.",
   ].join("\n");
 }
