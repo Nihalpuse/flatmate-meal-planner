@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { createGroupForUser, joinGroupForUser } from "@/lib/groups";
+import { rateLimit } from "@/lib/rate-limit";
 
 export type OnboardingState = { error?: string };
 
@@ -17,11 +18,13 @@ export async function createGroup(
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
+  let result;
   try {
-    await createGroupForUser(session.user.id, name);
+    result = await createGroupForUser(session.user.id, name);
   } catch {
     return { error: "Could not create group. Please try again." };
   }
+  if (result.error) return { error: result.error };
   redirect("/dashboard");
 }
 
@@ -35,13 +38,17 @@ export async function joinGroup(
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  let groupId: string | null;
+  // Blunts invite-code brute forcing.
+  if (!rateLimit(`join:${session.user.id}`, 10, 60_000)) {
+    return { error: "Too many attempts. Try again in a minute." };
+  }
+
+  let result;
   try {
-    groupId = await joinGroupForUser(session.user.id, code);
+    result = await joinGroupForUser(session.user.id, code);
   } catch {
     return { error: "Could not join group. Please try again." };
   }
-  if (!groupId) return { error: "No group found for that code" };
-
+  if (result.error) return { error: result.error };
   redirect("/dashboard");
 }
