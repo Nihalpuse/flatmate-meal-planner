@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
@@ -43,39 +43,63 @@ export interface SessionVoteState {
   totalVoters: number;
 }
 
-/** Per-suggestion vote counts + whether the given user voted for each. */
-export async function getSessionVoteState(
-  sessionId: string,
+/** Pure: per-session vote state from raw rows. Exported for tests. */
+export function buildVoteState(
+  sessionIds: string[],
+  suggestions: {
+    id: string;
+    sessionId: string;
+    mealName: string;
+    requiredIngredients: string[];
+  }[],
+  voteRows: { sessionId: string; suggestionId: string; userId: string }[],
   userId: string,
-): Promise<SessionVoteState> {
+): Map<string, SessionVoteState> {
+  const state = new Map<string, SessionVoteState>(
+    sessionIds.map((id) => [id, { suggestions: [], totalVoters: 0 }]),
+  );
+
+  const counts = new Map<string, number>();
+  const mine = new Set<string>();
+  for (const v of voteRows) {
+    counts.set(v.suggestionId, (counts.get(v.suggestionId) ?? 0) + 1);
+    if (v.userId === userId) mine.add(v.suggestionId);
+    const s = state.get(v.sessionId);
+    if (s) s.totalVoters += 1;
+  }
+
+  for (const sug of suggestions) {
+    state.get(sug.sessionId)?.suggestions.push({
+      id: sug.id,
+      mealName: sug.mealName,
+      requiredIngredients: sug.requiredIngredients,
+      votes: counts.get(sug.id) ?? 0,
+      mine: mine.has(sug.id),
+    });
+  }
+  return state;
+}
+
+/** Vote state for several sessions in two queries. */
+export async function getVoteStateForSessions(
+  sessionIds: string[],
+  userId: string,
+): Promise<Map<string, SessionVoteState>> {
+  if (sessionIds.length === 0) return new Map();
   const suggestions = await db
     .select()
     .from(mealSuggestions)
-    .where(eq(mealSuggestions.sessionId, sessionId))
+    .where(inArray(mealSuggestions.sessionId, sessionIds))
     .orderBy(mealSuggestions.createdAt);
-
   const voteRows = await db
-    .select({ suggestionId: votes.suggestionId, userId: votes.userId })
+    .select({
+      sessionId: votes.sessionId,
+      suggestionId: votes.suggestionId,
+      userId: votes.userId,
+    })
     .from(votes)
-    .where(eq(votes.sessionId, sessionId));
-
-  const counts = new Map<string, number>();
-  let myVote: string | null = null;
-  for (const v of voteRows) {
-    counts.set(v.suggestionId, (counts.get(v.suggestionId) ?? 0) + 1);
-    if (v.userId === userId) myVote = v.suggestionId;
-  }
-
-  return {
-    suggestions: suggestions.map((s) => ({
-      id: s.id,
-      mealName: s.mealName,
-      requiredIngredients: s.requiredIngredients,
-      votes: counts.get(s.id) ?? 0,
-      mine: myVote === s.id,
-    })),
-    totalVoters: voteRows.length,
-  };
+    .where(inArray(votes.sessionId, sessionIds));
+  return buildVoteState(sessionIds, suggestions, voteRows, userId);
 }
 
 /** Cast or move the user's single vote for a session. Returns an error string or null. */
@@ -179,13 +203,14 @@ export async function finalizeSessionForGroup(
   });
 }
 
-export async function getFinalizedMeal(
-  sessionId: string,
-): Promise<{ mealName: string } | null> {
-  const [row] = await db
-    .select({ mealName: finalizedMeals.mealName })
+/** Finalized meal names keyed by session id. */
+export async function getFinalizedMealsForSessions(
+  sessionIds: string[],
+): Promise<Map<string, { mealName: string }>> {
+  if (sessionIds.length === 0) return new Map();
+  const rows = await db
+    .select({ sessionId: finalizedMeals.sessionId, mealName: finalizedMeals.mealName })
     .from(finalizedMeals)
-    .where(eq(finalizedMeals.sessionId, sessionId))
-    .limit(1);
-  return row ?? null;
+    .where(inArray(finalizedMeals.sessionId, sessionIds));
+  return new Map(rows.map((r) => [r.sessionId, { mealName: r.mealName }]));
 }

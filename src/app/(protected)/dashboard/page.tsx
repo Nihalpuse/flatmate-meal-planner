@@ -4,21 +4,8 @@ import { auth } from "@/auth";
 import { DashboardView, type SessionBundle } from "@/components/dashboard/dashboard-view";
 import { getGroupContext } from "@/lib/groups";
 import { getAvailableIngredientNames, getOrCreateTodaySessions } from "@/lib/sessions";
-import { getFinalizedMeal, getSessionVoteState } from "@/lib/votes";
+import { getFinalizedMealsForSessions, getVoteStateForSessions } from "@/lib/votes";
 import type { MealSession } from "@/db/schema";
-
-async function bundle(session: MealSession, userId: string): Promise<SessionBundle> {
-  const [state, finalized] = await Promise.all([
-    getSessionVoteState(session.id, userId),
-    getFinalizedMeal(session.id),
-  ]);
-  return {
-    session,
-    suggestions: state.suggestions,
-    totalVoters: state.totalVoters,
-    finalized,
-  };
-}
 
 export default async function DashboardPage() {
   const authed = await auth();
@@ -29,19 +16,27 @@ export default async function DashboardPage() {
   if (!group) redirect("/onboarding");
 
   const { lunch, dinner } = await getOrCreateTodaySessions(group.id, group.timezone);
-  const [lunchBundle, dinnerBundle, available] = await Promise.all([
-    bundle(lunch, userId),
-    bundle(dinner, userId),
+  const ids = [lunch.id, dinner.id];
+  const [voteStates, finalized, available] = await Promise.all([
+    getVoteStateForSessions(ids, userId),
+    getFinalizedMealsForSessions(ids),
     getAvailableIngredientNames(group.id),
   ]);
+
+  const bundle = (session: MealSession): SessionBundle => ({
+    session,
+    suggestions: voteStates.get(session.id)?.suggestions ?? [],
+    totalVoters: voteStates.get(session.id)?.totalVoters ?? 0,
+    finalized: finalized.get(session.id) ?? null,
+  });
 
   return (
     <DashboardView
       available={available}
       isAdmin={group.role === "admin"}
       memberCount={group.memberCount}
-      lunch={lunchBundle}
-      dinner={dinnerBundle}
+      lunch={bundle(lunch)}
+      dinner={bundle(dinner)}
     />
   );
 }

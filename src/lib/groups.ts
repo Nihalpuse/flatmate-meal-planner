@@ -1,4 +1,5 @@
 import { randomInt } from "node:crypto";
+import { cache } from "react";
 
 import { asc, eq, sql } from "drizzle-orm";
 
@@ -11,17 +12,19 @@ export interface ActiveGroup {
   name: string;
 }
 
-/** The user's single active group (earliest membership), or null. */
-export async function getActiveGroup(userId: string): Promise<ActiveGroup | null> {
-  const rows = await db
-    .select({ id: groups.id, name: groups.name })
-    .from(groupMembers)
-    .innerJoin(groups, eq(groupMembers.groupId, groups.id))
-    .where(eq(groupMembers.userId, userId))
-    .orderBy(asc(groupMembers.joinedAt))
-    .limit(1);
-  return rows[0] ?? null;
-}
+/** The user's single active group (earliest membership), or null. Cached per request. */
+export const getActiveGroup = cache(
+  async (userId: string): Promise<ActiveGroup | null> => {
+    const rows = await db
+      .select({ id: groups.id, name: groups.name })
+      .from(groupMembers)
+      .innerJoin(groups, eq(groupMembers.groupId, groups.id))
+      .where(eq(groupMembers.userId, userId))
+      .orderBy(asc(groupMembers.joinedAt))
+      .limit(1);
+    return rows[0] ?? null;
+  },
+);
 
 const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no ambiguous chars
 
@@ -89,26 +92,28 @@ export interface GroupContext {
   memberCount: number;
 }
 
-/** The user's active group with their role and the member count. */
-export async function getGroupContext(userId: string): Promise<GroupContext | null> {
-  const [membership] = await db
-    .select({
-      id: groups.id,
-      name: groups.name,
-      timezone: groups.timezone,
-      role: groupMembers.role,
-    })
-    .from(groupMembers)
-    .innerJoin(groups, eq(groupMembers.groupId, groups.id))
-    .where(eq(groupMembers.userId, userId))
-    .orderBy(asc(groupMembers.joinedAt))
-    .limit(1);
-  if (!membership) return null;
+/** The user's active group with their role and the member count. Cached per request. */
+export const getGroupContext = cache(
+  async (userId: string): Promise<GroupContext | null> => {
+    const [membership] = await db
+      .select({
+        id: groups.id,
+        name: groups.name,
+        timezone: groups.timezone,
+        role: groupMembers.role,
+      })
+      .from(groupMembers)
+      .innerJoin(groups, eq(groupMembers.groupId, groups.id))
+      .where(eq(groupMembers.userId, userId))
+      .orderBy(asc(groupMembers.joinedAt))
+      .limit(1);
+    if (!membership) return null;
 
-  const [{ count }] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(groupMembers)
-    .where(eq(groupMembers.groupId, membership.id));
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(groupMembers)
+      .where(eq(groupMembers.groupId, membership.id));
 
-  return { ...membership, memberCount: count };
-}
+    return { ...membership, memberCount: count };
+  },
+);
