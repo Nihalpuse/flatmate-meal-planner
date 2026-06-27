@@ -15,6 +15,13 @@
       "when": 1781118730841,
       "tag": "0001_cold_madrox",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782580298230,
+      "tag": "0002_funny_ezekiel",
+      "breakpoints": true
     }
   ]
 }

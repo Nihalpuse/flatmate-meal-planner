@@ -57,6 +57,24 @@ export const accounts = pgTable(
   (t) => [primaryKey({ columns: [t.provider, t.providerAccountId] })],
 );
 
+export const sessions = pgTable("sessions", {
+  sessionToken: text("session_token").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  expires: timestamp("expires", { mode: "date" }).notNull(),
+});
+
+export const verificationTokens = pgTable(
+  "verification_tokens",
+  {
+    identifier: text("identifier").notNull(),
+    token: text("token").notNull(),
+    expires: timestamp("expires", { mode: "date" }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.identifier, t.token] })],
+);
+
 // ---------- app tables ----------
 export const groups = pgTable("groups", {
   id: uuid("id").primaryKey().defaultRandom(),
