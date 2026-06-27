@@ -96,3 +96,7 @@ export async function signUp(
 export async function signOut(): Promise<void> {
   await authSignOut({ redirectTo: "/login" });
 }
+
+export async function signInWithGoogle(): Promise<void> {
+  await authSignIn("google", { redirectTo: "/dashboard" });
+}
