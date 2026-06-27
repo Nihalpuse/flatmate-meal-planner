@@ -4,16 +4,28 @@ import Link from "next/link";
 import { useActionState } from "react";
 
 import { signUp, type AuthState } from "@/app/(auth)/actions";
+import { GoogleButton } from "@/components/auth/google-button";
 import { Button } from "@/components/ui/button";
 
 const initial: AuthState = {};
 
-export function RegisterForm() {
+export function RegisterForm({ googleEnabled = false }: { googleEnabled?: boolean }) {
   const [state, formAction, pending] = useActionState(signUp, initial);
 
   return (
     <form action={formAction} className="space-y-4">
       <h1 className="text-2xl font-extrabold">Create account</h1>
+
+      {googleEnabled ? (
+        <div className="space-y-3">
+          <GoogleButton />
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="h-px flex-1 bg-border" />
+            or
+            <span className="h-px flex-1 bg-border" />
+          </div>
+        </div>
+      ) : null}
 
       <div className="space-y-1">
         <label htmlFor="name" className="text-sm font-semibold">Name</label>
