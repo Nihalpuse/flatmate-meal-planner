@@ -1,15 +1,23 @@
 import { eq } from "drizzle-orm";
 import NextAuth from "next-auth";
+import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 
 import { authConfig } from "@/auth.config";
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { accounts, sessions, users, verificationTokens } from "@/db/schema";
 import { signInSchema } from "@/lib/auth/validation";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
+  adapter: DrizzleAdapter(db, {
+    usersTable: users,
+    accountsTable: accounts,
+    sessionsTable: sessions,
+    verificationTokensTable: verificationTokens,
+  }),
   providers: [
     Credentials({
       credentials: { email: {}, password: {} },
@@ -31,5 +39,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return { id: user.id, name: user.name, email: user.email };
       },
     }),
+    Google({ allowDangerousEmailAccountLinking: true }),
   ],
 });
