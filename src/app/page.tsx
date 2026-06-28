@@ -1,30 +1,33 @@
-import Link from "next/link";
+import { redirect } from "next/navigation";
 
-import { buttonVariants } from "@/components/ui/button";
+import { auth } from "@/auth";
+import { BackgroundField } from "@/components/background-field";
+import { FeatureSpotlight } from "@/components/landing/feature-spotlight";
+import { FinalCta } from "@/components/landing/final-cta";
+import { Hero } from "@/components/landing/hero";
+import { HowItWorks } from "@/components/landing/how-it-works";
+import { LandingFooter } from "@/components/landing/landing-footer";
+import { LandingNav } from "@/components/landing/landing-nav";
+import { PayoffBand } from "@/components/landing/payoff-band";
+import { UseCasesBento } from "@/components/landing/use-cases-bento";
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const session = await auth();
+  if (session?.user) redirect("/dashboard");
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-8 p-8 text-center">
-      <div className="space-y-3">
-        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-          🍛 Aaj Kya Banega?
-        </h1>
-        <p className="text-muted-foreground mx-auto max-w-md text-balance">
-          Decide what to cook in under 2 minutes. Vote, get AI suggestions, and
-          never repeat the same meal twice.
-        </p>
-      </div>
-      <div className="flex gap-3">
-        <Link href="/register" className={buttonVariants({ size: "lg" })}>
-          Get started
-        </Link>
-        <Link
-          href="/login"
-          className={buttonVariants({ variant: "outline", size: "lg" })}
-        >
-          Log in
-        </Link>
-      </div>
-    </main>
+    <>
+      <BackgroundField />
+      <LandingNav />
+      <main>
+        <Hero />
+        <HowItWorks />
+        <UseCasesBento />
+        <FeatureSpotlight />
+        <PayoffBand />
+        <FinalCta />
+      </main>
+      <LandingFooter />
+    </>
   );
 }

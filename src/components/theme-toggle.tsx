@@ -7,16 +7,19 @@ import { Button } from "@/components/ui/button";
 
 export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
 
+  // Render both icons and toggle via the `.dark` class so server and client
+  // markup match (next-themes only resolves the theme on the client, which
+  // would otherwise cause a hydration mismatch).
   return (
     <Button
       variant="ghost"
       size="icon"
       aria-label="Toggle theme"
-      onClick={() => setTheme(isDark ? "light" : "dark")}
+      onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
     >
-      {isDark ? <Moon className="size-4" /> : <Sun className="size-4" />}
+      <Sun className="size-4 dark:hidden" />
+      <Moon className="hidden size-4 dark:block" />
     </Button>
   );
 }
