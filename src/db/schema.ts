@@ -148,6 +148,23 @@ export const mealSessions = pgTable(
   ],
 );
 
+export const dishSource = pgEnum("dish_source", ["seed", "ai"]);
+
+export const dishes = pgTable(
+  "dishes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    requiredIngredients: jsonb("required_ingredients")
+      .$type<string[]>()
+      .notNull()
+      .default([]),
+    source: dishSource("source").notNull().default("seed"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("dishes_lower_name_idx").on(sql`lower(${t.name})`)],
+);
+
 export const mealSuggestions = pgTable("meal_suggestions", {
   id: uuid("id").primaryKey().defaultRandom(),
   sessionId: uuid("session_id")
@@ -159,6 +176,8 @@ export const mealSuggestions = pgTable("meal_suggestions", {
     .$type<string[]>()
     .notNull()
     .default([]),
+  addedBy: text("added_by").references(() => users.id, { onDelete: "set null" }),
+  dishId: uuid("dish_id").references(() => dishes.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -201,5 +220,6 @@ export type GroupMember = typeof groupMembers.$inferSelect;
 export type Ingredient = typeof ingredients.$inferSelect;
 export type MealSession = typeof mealSessions.$inferSelect;
 export type MealSuggestion = typeof mealSuggestions.$inferSelect;
+export type Dish = typeof dishes.$inferSelect;
 export type Vote = typeof votes.$inferSelect;
 export type FinalizedMeal = typeof finalizedMeals.$inferSelect;

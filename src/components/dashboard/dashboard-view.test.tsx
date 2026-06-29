@@ -16,7 +16,7 @@ import { castVote } from "@/app/(protected)/dashboard/vote-actions";
 import { DashboardView } from "./dashboard-view";
 
 const sv = (id: string, name: string, req: string[], votes: number, mine = false) => ({
-  id, mealName: name, requiredIngredients: req, votes, mine,
+  id, mealName: name, requiredIngredients: req, votes, mine, addedBy: null as string | null,
 });
 const sessBase = { groupId: "g", sessionDate: "2026-06-05", status: "open" as const, createdAt: new Date(), lastGeneratedAt: null };
 const lunch = {
