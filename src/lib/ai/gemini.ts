@@ -1,6 +1,8 @@
 import { env } from "@/env";
+import { buildDishPrompt } from "./dish-prompt";
 import { buildPurchasePrompt } from "./purchase-prompt";
 import { buildSuggestionPrompt, type SuggestionInput } from "./prompt";
+import { parseDishIngredients } from "./parse-dish";
 import { parsePurchaseItems, type ParsedItem } from "./parse-purchase";
 import { parseSuggestions, type Suggestion } from "./parse";
 
@@ -68,4 +70,12 @@ export async function generateMealSuggestions(
 export async function parsePurchase(text: string): Promise<ParsedItem[]> {
   const out = await generateJson(buildPurchasePrompt(text), PURCHASE_SCHEMA);
   return parsePurchaseItems(out);
+}
+
+const DISH_SCHEMA = { type: "ARRAY", items: { type: "STRING" } } as const;
+
+/** Ask the model for a dish's key required ingredients (lowercase names). */
+export async function parseDish(name: string): Promise<string[]> {
+  const out = await generateJson(buildDishPrompt(name), DISH_SCHEMA);
+  return parseDishIngredients(out);
 }
