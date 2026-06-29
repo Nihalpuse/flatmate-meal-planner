@@ -17,30 +17,29 @@ export function AddSuggestion({ sessionId }: { sessionId: string }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<DishHit[]>([]);
-  const [searching, setSearching] = useState(false);
+  const [searchedQuery, setSearchedQuery] = useState("");
   const [pending, start] = useTransition();
 
-  // Debounced catalog search.
+  // Debounced catalog search. State is only set inside the async callback.
   useEffect(() => {
     const q = query.trim();
-    if (!q) {
-      setHits([]);
-      return;
-    }
-    setSearching(true);
+    if (!q) return;
     const t = setTimeout(async () => {
       const res = await searchDishesAction(q);
       setHits(res);
-      setSearching(false);
+      setSearchedQuery(q);
     }, 250);
     return () => clearTimeout(t);
   }, [query]);
 
   const trimmed = query.trim();
+  const settled = searchedQuery === trimmed;
   const hasExact = hits.some(
     (h) => h.name.trim().toLowerCase() === trimmed.toLowerCase(),
   );
-  const showAi = trimmed.length > 0 && !hasExact && !searching;
+  // Only offer the AI fallback once results for the current query have settled.
+  const showAi = trimmed.length > 0 && settled && !hasExact;
+  const showHits = trimmed.length > 0 && settled;
 
   function close() {
     setOpen(false);
@@ -79,6 +78,7 @@ export function AddSuggestion({ sessionId }: { sessionId: string }) {
         <input
           role="combobox"
           aria-expanded
+          aria-controls="add-dish-listbox"
           aria-label="Search dishes"
           autoFocus
           value={query}
@@ -88,8 +88,8 @@ export function AddSuggestion({ sessionId }: { sessionId: string }) {
         />
       </div>
 
-      {trimmed.length > 0 ? (
-        <ul role="listbox" className="max-h-56 space-y-1 overflow-y-auto">
+      {showHits ? (
+        <ul id="add-dish-listbox" role="listbox" className="max-h-56 space-y-1 overflow-y-auto">
           {hits.map((h) => (
             <li key={h.id} role="option" aria-selected={false}>
               <button
