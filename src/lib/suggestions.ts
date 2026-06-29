@@ -1,7 +1,7 @@
 import { and, eq, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { mealSessions, mealSuggestions, type MealSession } from "@/db/schema";
+import { dishes, mealSessions, mealSuggestions, type MealSession } from "@/db/schema";
 import type { Suggestion } from "@/lib/ai/parse";
 
 export const GENERATE_COOLDOWN_SECONDS = 30;
@@ -60,7 +60,14 @@ export async function replaceSuggestions(
     if (!session || session.status !== "open") {
       return "Voting has started — regenerate is locked.";
     }
-    await tx.delete(mealSuggestions).where(eq(mealSuggestions.sessionId, sessionId));
+    await tx
+      .delete(mealSuggestions)
+      .where(
+        and(
+          eq(mealSuggestions.sessionId, sessionId),
+          eq(mealSuggestions.aiGenerated, true),
+        ),
+      );
     if (items.length > 0) {
       await tx.insert(mealSuggestions).values(
         items.map((s) => ({
@@ -71,6 +78,93 @@ export async function replaceSuggestions(
         })),
       );
     }
+    return null;
+  });
+}
+
+export const MANUAL_SUGGESTION_CAP = 15;
+
+/** Append a single manual suggestion from a catalog dish. Error string or null. */
+export async function addCatalogSuggestion(
+  userId: string,
+  groupId: string,
+  sessionId: string,
+  dishId: string,
+): Promise<string | null> {
+  return db.transaction(async (tx) => {
+    const [session] = await tx
+      .select()
+      .from(mealSessions)
+      .where(and(eq(mealSessions.id, sessionId), eq(mealSessions.groupId, groupId)))
+      .limit(1)
+      .for("update");
+    if (!session) return "Session not found";
+    if (session.status === "finalized" || session.status === "cancelled") {
+      return "Voting is closed";
+    }
+
+    const [dish] = await tx
+      .select()
+      .from(dishes)
+      .where(eq(dishes.id, dishId))
+      .limit(1);
+    if (!dish) return "Dish not found";
+
+    const existing = await tx
+      .select({ mealName: mealSuggestions.mealName })
+      .from(mealSuggestions)
+      .where(eq(mealSuggestions.sessionId, sessionId));
+    if (existing.length >= MANUAL_SUGGESTION_CAP) {
+      return "This session already has the maximum number of suggestions";
+    }
+    const dup = existing.some(
+      (e) => e.mealName.trim().toLowerCase() === dish.name.trim().toLowerCase(),
+    );
+    if (dup) return "Already suggested";
+
+    await tx.insert(mealSuggestions).values({
+      sessionId,
+      mealName: dish.name,
+      requiredIngredients: dish.requiredIngredients,
+      aiGenerated: false,
+      addedBy: userId,
+      dishId: dish.id,
+    });
+    return null;
+  });
+}
+
+/** Remove a suggestion from the session (admin or author). Catalog dish untouched. */
+export async function removeSuggestion(
+  userId: string,
+  groupId: string,
+  isAdmin: boolean,
+  sessionId: string,
+  suggestionId: string,
+): Promise<string | null> {
+  return db.transaction(async (tx) => {
+    const [session] = await tx
+      .select()
+      .from(mealSessions)
+      .where(and(eq(mealSessions.id, sessionId), eq(mealSessions.groupId, groupId)))
+      .limit(1)
+      .for("update");
+    if (!session) return "Session not found";
+    if (session.status === "finalized") return "Voting is closed";
+
+    const [sug] = await tx
+      .select({ id: mealSuggestions.id, addedBy: mealSuggestions.addedBy })
+      .from(mealSuggestions)
+      .where(
+        and(eq(mealSuggestions.id, suggestionId), eq(mealSuggestions.sessionId, sessionId)),
+      )
+      .limit(1);
+    if (!sug) return "Suggestion not found";
+    if (!isAdmin && sug.addedBy !== userId) {
+      return "You can only remove suggestions you added";
+    }
+
+    await tx.delete(mealSuggestions).where(eq(mealSuggestions.id, suggestionId));
     return null;
   });
 }
