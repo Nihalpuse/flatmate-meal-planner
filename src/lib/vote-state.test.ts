@@ -2,11 +2,12 @@ import { expect, test } from "vitest";
 
 import { buildVoteState } from "./votes";
 
-const sug = (id: string, sessionId: string, name: string) => ({
+const sug = (id: string, sessionId: string, name: string, addedBy: string | null = null) => ({
   id,
   sessionId,
   mealName: name,
   requiredIngredients: [] as string[],
+  addedBy,
 });
 
 test("groups suggestions and votes per session, flags my vote", () => {
@@ -22,7 +23,7 @@ test("groups suggestions and votes per session, flags my vote", () => {
   );
   const s1 = state.get("s1")!;
   expect(s1.totalVoters).toBe(2);
-  expect(s1.suggestions.find((s) => s.id === "a")).toMatchObject({ votes: 2, mine: true });
+  expect(s1.suggestions.find((s) => s.id === "a")).toMatchObject({ votes: 2, mine: true, addedBy: null });
   expect(s1.suggestions.find((s) => s.id === "b")).toMatchObject({ votes: 0, mine: false });
   expect(state.get("s2")!.totalVoters).toBe(1);
 });

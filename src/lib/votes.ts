@@ -36,6 +36,7 @@ export interface SuggestionVote {
   requiredIngredients: string[];
   votes: number;
   mine: boolean;
+  addedBy: string | null;
 }
 
 export interface SessionVoteState {
@@ -51,6 +52,7 @@ export function buildVoteState(
     sessionId: string;
     mealName: string;
     requiredIngredients: string[];
+    addedBy: string | null;
   }[],
   voteRows: { sessionId: string; suggestionId: string; userId: string }[],
   userId: string,
@@ -75,6 +77,7 @@ export function buildVoteState(
       requiredIngredients: sug.requiredIngredients,
       votes: counts.get(sug.id) ?? 0,
       mine: mine.has(sug.id),
+      addedBy: sug.addedBy,
     });
   }
   return state;
@@ -147,6 +150,28 @@ export async function castVoteForUser(
         target: [votes.sessionId, votes.userId],
         set: { suggestionId },
       });
+    return null;
+  });
+}
+
+/** Remove the caller's own vote for a session (unvote). Error string or null. */
+export async function clearVoteForUser(
+  userId: string,
+  groupId: string,
+  sessionId: string,
+): Promise<string | null> {
+  return db.transaction(async (tx) => {
+    const [session] = await tx
+      .select()
+      .from(mealSessions)
+      .where(and(eq(mealSessions.id, sessionId), eq(mealSessions.groupId, groupId)))
+      .limit(1)
+      .for("update");
+    if (!session) return "Session not found";
+    if (session.status === "finalized") return "Voting is closed";
+    await tx
+      .delete(votes)
+      .where(and(eq(votes.sessionId, sessionId), eq(votes.userId, userId)));
     return null;
   });
 }
