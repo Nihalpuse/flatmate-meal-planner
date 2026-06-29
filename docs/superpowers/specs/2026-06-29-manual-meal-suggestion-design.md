@@ -1,4 +1,4 @@
-# Manual Meal Suggestions (Catalog Search + AI Fallback) + Unvote — Design
+# Manual Meal Suggestions + Unvote + Optimistic Voting — Design
 
 **Date:** 2026-06-29
 **Status:** Approved (proceed)
@@ -165,6 +165,30 @@ end up with no selection. This adds that.
 - **Tests (PGlite):** `clearVoteForUser` removes only the caller's vote, is a no-op
   when none exists, and is blocked once `finalized`; component test: tapping a
   `mine` row calls `clearVote`, tapping another calls `castVote`.
+
+## Added feature: Optimistic vote / unvote (instant tap)
+
+Today the selected state is server-driven: a tap awaits the server action + Neon
+transaction + `revalidatePath` re-render before the ring/count update, so there is
+a visible delay. This makes the tap feel instant with no backend change.
+
+- **`dashboard-view.tsx` `SessionPanel`** uses React `useOptimistic` over the
+  bundle's `suggestions` + `totalVoters`, keyed off the current user's vote:
+  - Optimistic state derives `mine` per suggestion and the voter total from a
+    single "my current pick" value (`string | null`).
+  - On tap: compute the next pick (tap own pick -> `null` (unvote); tap another ->
+    that id), apply it optimistically (move ring, adjust the tapped/previous counts
+    and `totalVoters`), then call `castVote`/`clearVote` inside the existing
+    `useTransition`.
+  - If the action returns an error, toast it; `useOptimistic` auto-reverts when the
+    real (revalidated) props arrive. Polling continues to reconcile every 8s.
+- The vote buttons no longer disable on `pending` (optimistic state covers
+  feedback); they stay tappable so a quick change of mind is not blocked. Generate
+  / Finalize buttons keep their `pending` disabling.
+- Purely client-side; `castVote`/`clearVote`/server logic unchanged.
+- **Test (`dashboard-view.test.tsx`):** tapping an unselected row immediately shows
+  it selected (ring / `aria-pressed`) before the mocked action resolves; tapping
+  the selected row immediately clears it.
 
 ## Out of scope (YAGNI)
 
