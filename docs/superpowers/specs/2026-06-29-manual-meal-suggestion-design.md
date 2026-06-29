@@ -1,4 +1,4 @@
-# Manual Meal Suggestions (Catalog Search + AI Fallback) — Design
+# Manual Meal Suggestions (Catalog Search + AI Fallback) + Unvote — Design
 
 **Date:** 2026-06-29
 **Status:** Approved (proceed)
@@ -142,6 +142,29 @@ regeneration now replaces only AI rows; manual ones persist.
   click calls `addSuggestionFromCatalog`, no-match shows the AI row which calls
   `addSuggestionWithAI`; remove button visibility by author/admin in
   `dashboard-view.test.tsx`.
+
+## Added feature: Unvote / abstain (toggle off)
+
+Today a member can cast or move a vote but cannot remove it — there is no way to
+end up with no selection. This adds that.
+
+- **`lib/votes.ts` `clearVoteForUser(userId, groupId, sessionId)`** — row-locked
+  txn: session must be in group and not `finalized` (`"Voting is closed"` otherwise);
+  delete the caller's own `votes` row for the session (`where sessionId = ? AND
+  userId = ?`). Returns error string or null. No-op-safe if no vote exists.
+- **`clearVote(sessionId)`** `"use server"` action mirrors `castVote` (auth +
+  group), calls `clearVoteForUser`, `revalidatePath("/dashboard")`.
+- **UI (`dashboard-view.tsx`):** `runVote(suggestion)` toggles — if
+  `suggestion.mine` is true, call `clearVote(session.id)`; otherwise
+  `castVote(session.id, suggestion.id)`. The selected row keeps its
+  `aria-pressed` + ring; tapping it again clears. Count and "X of N voted" update
+  on refresh.
+- **Status:** clearing a vote does not revert the session from `voting` to `open`
+  (keeps Regenerate locked once voting has started). Finalize with zero votes still
+  returns "No votes yet".
+- **Tests (PGlite):** `clearVoteForUser` removes only the caller's vote, is a no-op
+  when none exists, and is blocked once `finalized`; component test: tapping a
+  `mine` row calls `clearVote`, tapping another calls `castVote`.
 
 ## Out of scope (YAGNI)
 
