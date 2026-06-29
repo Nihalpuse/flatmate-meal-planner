@@ -1,12 +1,14 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
+import { Sparkles, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useOptimistic, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { generateSuggestions } from "@/app/(protected)/dashboard/actions";
-import { castVote, finalizeSession } from "@/app/(protected)/dashboard/vote-actions";
+import { castVote, clearVote, finalizeSession } from "@/app/(protected)/dashboard/vote-actions";
+import { removeSuggestionFromSession } from "@/app/(protected)/dashboard/suggestion-actions";
+import { AddSuggestion } from "@/components/dashboard/add-suggestion";
 import { Button } from "@/components/ui/button";
 import { CountChip } from "@/components/ui/count-chip";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -26,12 +28,14 @@ export interface SessionBundle {
 export function DashboardView({
   available,
   isAdmin,
+  currentUserId,
   memberCount,
   lunch,
   dinner,
 }: {
   available: string[];
   isAdmin: boolean;
+  currentUserId: string;
   memberCount: number;
   lunch: SessionBundle;
   dinner: SessionBundle;
@@ -75,59 +79,66 @@ export function DashboardView({
         bundle={active}
         available={available}
         isAdmin={isAdmin}
+        currentUserId={currentUserId}
         memberCount={memberCount}
       />
     </section>
   );
 }
 
+type View = { suggestions: SuggestionVote[]; totalVoters: number };
+
 function SessionPanel({
   bundle,
   available,
   isAdmin,
+  currentUserId,
   memberCount,
 }: {
   bundle: SessionBundle;
   available: string[];
   isAdmin: boolean;
+  currentUserId: string;
   memberCount: number;
 }) {
   const [pending, start] = useTransition();
   const [generating, setGenerating] = useState(false);
   const { session, suggestions, totalVoters, finalized } = bundle;
 
-  if (session.status === "finalized" && finalized) {
-    const chosen = suggestions.find((s) => s.mealName === finalized.mealName);
-    const missing = chosen ? missingIngredients(chosen.requiredIngredients, available) : [];
-    return (
-      <GlassCard className="space-y-2">
-        <Kicker variant="solid">Finalized</Kicker>
-        <div className="text-xl font-extrabold">🍽️ {finalized.mealName}</div>
-        {missing.length > 0 ? (
-          <div className="space-y-1">
-            <div className="text-sm font-semibold">Shopping list:</div>
-            <div className="text-destructive text-sm">{missing.join(", ")}</div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                navigator.clipboard?.writeText(missing.join(", "));
-                toast.success("Grocery list copied");
-              }}
-            >
-              Copy list
-            </Button>
-          </div>
-        ) : (
-          <div className="text-sm text-emerald-600">You have everything. 🎉</div>
-        )}
-      </GlassCard>
-    );
+  const [view, applyPick] = useOptimistic<View, string>(
+    { suggestions, totalVoters },
+    (state, tappedId) => {
+      const prevPick = state.suggestions.find((s) => s.mine)?.id ?? null;
+      const unvote = prevPick === tappedId;
+      return {
+        totalVoters: unvote
+          ? state.totalVoters - 1
+          : state.totalVoters + (prevPick === null ? 1 : 0),
+        suggestions: state.suggestions.map((s) => {
+          if (s.id === tappedId) {
+            return { ...s, mine: !unvote, votes: s.votes + (unvote ? -1 : 1) };
+          }
+          if (s.id === prevPick) {
+            return { ...s, mine: false, votes: s.votes - 1 };
+          }
+          return s;
+        }),
+      };
+    },
+  );
+
+  function runVote(id: string) {
+    const wasMine = view.suggestions.find((s) => s.id === id)?.mine ?? false;
+    start(async () => {
+      applyPick(id);
+      const res = wasMine ? await clearVote(session.id) : await castVote(session.id, id);
+      if (res.error) toast.error(res.error);
+    });
   }
 
-  function runVote(suggestionId: string) {
+  function runRemove(id: string) {
     start(async () => {
-      const res = await castVote(session.id, suggestionId);
+      const res = await removeSuggestionFromSession(session.id, id);
       if (res.error) toast.error(res.error);
     });
   }
@@ -149,15 +160,44 @@ function SessionPanel({
     });
   }
 
+  if (session.status === "finalized" && finalized) {
+    const chosen = suggestions.find((s) => s.mealName === finalized.mealName);
+    const missing = chosen ? missingIngredients(chosen.requiredIngredients, available) : [];
+    return (
+      <GlassCard className="space-y-2">
+        <Kicker variant="solid">Finalized</Kicker>
+        <div className="text-xl font-extrabold">{finalized.mealName}</div>
+        {missing.length > 0 ? (
+          <div className="space-y-1">
+            <div className="text-sm font-semibold">Shopping list:</div>
+            <div className="text-destructive text-sm">{missing.join(", ")}</div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                navigator.clipboard?.writeText(missing.join(", "));
+                toast.success("Grocery list copied");
+              }}
+            >
+              Copy list
+            </Button>
+          </div>
+        ) : (
+          <div className="text-muted-foreground text-sm">You have everything.</div>
+        )}
+      </GlassCard>
+    );
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <Kicker>
-          {totalVoters} of {memberCount} voted
+          {view.totalVoters} of {memberCount} voted
         </Kicker>
         <Button size="sm" variant="outline" disabled={pending} onClick={runGenerate}>
           <Sparkles className="size-4" />
-          {suggestions.length ? "Regenerate" : "Generate"}
+          {view.suggestions.length ? "Regenerate" : "Generate"}
         </Button>
       </div>
 
@@ -169,53 +209,65 @@ function SessionPanel({
             </li>
           ))}
         </ul>
-      ) : suggestions.length === 0 ? (
+      ) : view.suggestions.length === 0 ? (
         <GlassCard className="text-muted-foreground text-sm">
-          No suggestions yet. Tap Generate to get AI ideas from your pantry.
+          No suggestions yet. Tap Generate, or add a dish below.
         </GlassCard>
       ) : (
         <ul className="space-y-2">
-          {suggestions.map((s) => {
+          {view.suggestions.map((s) => {
             const missing = missingIngredients(s.requiredIngredients, available);
+            const canRemove = isAdmin || s.addedBy === currentUserId;
             return (
               <li key={s.id}>
-                <button
-                  type="button"
-                  disabled={pending}
-                  onClick={() => runVote(s.id)}
-                  aria-pressed={s.mine}
-                  className="w-full text-left"
+                <GlassCard
+                  className={cn("flex items-center gap-3", s.mine && "ring-2 ring-primary")}
                 >
-                  <GlassCard
-                    className={cn(
-                      "flex items-center gap-3",
-                      s.mine && "ring-2 ring-primary",
-                    )}
+                  <button
+                    type="button"
+                    onClick={() => runVote(s.id)}
+                    aria-pressed={s.mine}
+                    className="min-w-0 flex-1 text-left"
                   >
-                    <div className="min-w-0 flex-1">
-                      <div className="font-bold">{s.mealName}</div>
-                      {missing.length > 0 ? (
-                        <div className="text-destructive text-xs font-semibold">
-                          ⚠ needs {missing.join(", ")}
-                        </div>
-                      ) : (
-                        <div className="text-xs font-semibold text-emerald-600">
-                          ✓ you have everything
-                        </div>
-                      )}
-                    </div>
-                    <CountChip count={s.votes} />
-                  </GlassCard>
-                </button>
+                    <div className="font-bold">{s.mealName}</div>
+                    {missing.length > 0 ? (
+                      <div className="text-destructive text-xs font-semibold">
+                        needs {missing.join(", ")}
+                      </div>
+                    ) : (
+                      <div className="text-muted-foreground text-xs font-semibold">
+                        you have everything
+                      </div>
+                    )}
+                  </button>
+                  <CountChip count={s.votes} />
+                  {canRemove ? (
+                    <button
+                      type="button"
+                      aria-label={`Remove ${s.mealName}`}
+                      disabled={pending}
+                      onClick={() => runRemove(s.id)}
+                      className="text-muted-foreground hover:text-destructive shrink-0"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  ) : null}
+                </GlassCard>
               </li>
             );
           })}
         </ul>
       )}
 
-      {isAdmin && suggestions.length > 0 ? (
-        <Button className="w-full" disabled={pending || totalVoters === 0} onClick={runFinalize}>
-          Finalize {totalVoters === 0 ? "(no votes yet)" : "winning meal"}
+      {!generating ? <AddSuggestion sessionId={session.id} /> : null}
+
+      {isAdmin && view.suggestions.length > 0 ? (
+        <Button
+          className="w-full"
+          disabled={pending || view.totalVoters === 0}
+          onClick={runFinalize}
+        >
+          Finalize {view.totalVoters === 0 ? "(no votes yet)" : "winning meal"}
         </Button>
       ) : null}
     </div>

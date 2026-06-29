@@ -5,14 +5,21 @@ import { expect, test, vi } from "vitest";
 vi.mock("@/app/(protected)/dashboard/actions", () => ({ generateSuggestions: vi.fn() }));
 vi.mock("@/app/(protected)/dashboard/vote-actions", () => ({
   castVote: vi.fn().mockResolvedValue({}),
+  clearVote: vi.fn().mockResolvedValue({}),
   finalizeSession: vi.fn().mockResolvedValue({}),
+}));
+vi.mock("@/app/(protected)/dashboard/suggestion-actions", () => ({
+  searchDishesAction: vi.fn().mockResolvedValue([]),
+  addSuggestionFromCatalog: vi.fn().mockResolvedValue({}),
+  addSuggestionWithAI: vi.fn().mockResolvedValue({}),
+  removeSuggestionFromSession: vi.fn().mockResolvedValue({}),
 }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 const { refreshMock } = vi.hoisted(() => ({ refreshMock: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: refreshMock }) }));
 
-import { castVote } from "@/app/(protected)/dashboard/vote-actions";
+import { castVote, clearVote } from "@/app/(protected)/dashboard/vote-actions";
 import { DashboardView } from "./dashboard-view";
 
 const sv = (id: string, name: string, req: string[], votes: number, mine = false) => ({
@@ -32,7 +39,7 @@ const dinner = {
   finalized: null,
 };
 
-const props = { available: ["rice", "egg"], isAdmin: true, memberCount: 3, lunch, dinner };
+const props = { available: ["rice", "egg"], isAdmin: true, currentUserId: "me", memberCount: 3, lunch, dinner };
 
 test("shows suggestions, votes count, and progress", () => {
   render(<DashboardView {...props} />);
@@ -50,6 +57,40 @@ test("tapping a suggestion casts a vote", async () => {
 test("admin sees a finalize button", () => {
   render(<DashboardView {...props} />);
   expect(screen.getByRole("button", { name: /finalize/i })).toBeInTheDocument();
+});
+
+test("tapping an unselected suggestion shows it selected immediately (optimistic)", async () => {
+  // Keep the action pending so the optimistic state persists for the assertion.
+  vi.mocked(castVote).mockReturnValueOnce(new Promise<{ error?: string }>(() => {}));
+  render(<DashboardView {...props} />);
+  const btn = screen.getByRole("button", { name: /Paneer Masala/, pressed: false });
+  await userEvent.click(btn);
+  expect(btn).toHaveAttribute("aria-pressed", "true");
+  expect(castVote).toHaveBeenCalledWith("l", "2");
+});
+
+test("tapping your selected suggestion clears the vote (optimistic + clearVote)", async () => {
+  vi.mocked(clearVote).mockReturnValueOnce(new Promise<{ error?: string }>(() => {}));
+  render(<DashboardView {...props} />);
+  const mine = screen.getByRole("button", { name: /Egg Fried Rice/, pressed: true });
+  await userEvent.click(mine);
+  expect(mine).toHaveAttribute("aria-pressed", "false");
+  expect(clearVote).toHaveBeenCalledWith("l");
+});
+
+test("shows remove on a suggestion the current user added", () => {
+  const withMineAdded = {
+    ...props,
+    lunch: {
+      ...lunch,
+      suggestions: [
+        { ...sv("1", "Egg Fried Rice", ["egg", "rice"], 2, true), addedBy: "me" },
+        sv("2", "Paneer Masala", ["paneer"], 0),
+      ],
+    },
+  };
+  render(<DashboardView {...withMineAdded} />);
+  expect(screen.getByRole("button", { name: /remove Egg Fried Rice/i })).toBeInTheDocument();
 });
 
 test("finalized session shows the chosen meal and grocery list", () => {

@@ -34,6 +34,7 @@ export default async function DashboardPage() {
     <DashboardView
       available={available}
       isAdmin={group.role === "admin"}
+      currentUserId={userId}
       memberCount={group.memberCount}
       lunch={bundle(lunch)}
       dinner={bundle(dinner)}
