@@ -30,13 +30,12 @@ export function FeatureSpotlight() {
 
         <Reveal delay={0.1} className="order-1 md:order-2">
           <div className="overflow-hidden rounded-[28px] border border-[var(--glass-border)] shadow-[0_24px_60px_var(--glass-shadow)]">
-            {/* Real food photography via loremflickr (keyworded, stable lock). Swap for brand photos when available. */}
+            {/* Swap for brand photos when available. */}
             <Image
-              src="https://loremflickr.com/800/600/indian,vegetables,cooking/all?lock=22"
-              alt="Fresh ingredients laid out in a kitchen"
+              src="/images/fresh-ingredients.jpg"
+              alt="Fresh vegetables and greens arranged in a bowl"
               width={800}
               height={600}
-              unoptimized
               className="aspect-[4/3] w-full object-cover"
             />
           </div>

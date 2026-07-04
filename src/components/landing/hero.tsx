@@ -32,15 +32,14 @@ export function Hero() {
       </Reveal>
 
       <Reveal delay={0.12} className="relative flex justify-center md:justify-end">
-        {/* Real food photography via loremflickr (keyworded, stable lock). Swap for brand photos when available. */}
+        {/* Swap for brand photos when available. */}
         <Image
-          src="https://loremflickr.com/640/800/indian,thali,dinner/all?lock=11"
+          src="/images/hero-thali.jpg"
           alt=""
           aria-hidden
           width={640}
           height={800}
           priority
-          unoptimized
           className="absolute -right-2 -top-6 hidden h-[88%] w-[58%] rounded-[28px] object-cover shadow-[0_24px_60px_var(--glass-shadow)] md:block"
         />
         <div className="relative z-10 w-full max-w-sm md:translate-x-[-8%] md:translate-y-4">
