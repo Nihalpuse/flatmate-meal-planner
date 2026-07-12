@@ -11,39 +11,51 @@ import {
 } from "@/db/schema";
 import { toDateString } from "@/lib/meal-utils";
 
-async function getOrCreateSession(
-  groupId: string,
-  sessionDate: string,
-  mealType: "lunch" | "dinner",
-): Promise<MealSession> {
-  await db
-    .insert(mealSessions)
-    .values({ groupId, sessionDate, mealType })
-    .onConflictDoNothing();
-  const [session] = await db
+/** Both of a group's sessions for a date, in one query. */
+function selectSessions(groupId: string, sessionDate: string) {
+  return db
     .select()
     .from(mealSessions)
     .where(
       and(
         eq(mealSessions.groupId, groupId),
         eq(mealSessions.sessionDate, sessionDate),
-        eq(mealSessions.mealType, mealType),
       ),
-    )
-    .limit(1);
-  return session;
+    );
 }
 
+/**
+ * Today's lunch and dinner sessions, creating them on the first render of the day.
+ *
+ * Read-first: after that first render both rows exist for the rest of the day, so
+ * the common path is a single SELECT and no write at all. Only the rows that are
+ * actually missing get inserted; the unique index on
+ * (group_id, session_date, meal_type) makes a concurrent first render harmless,
+ * and the re-read picks up whichever writer won.
+ */
 export async function getOrCreateTodaySessions(
   groupId: string,
   timezone: string,
 ): Promise<{ lunch: MealSession; dinner: MealSession }> {
   const date = toDateString(new Date(), timezone);
-  const [lunch, dinner] = await Promise.all([
-    getOrCreateSession(groupId, date, "lunch"),
-    getOrCreateSession(groupId, date, "dinner"),
-  ]);
-  return { lunch, dinner };
+
+  const existing = await selectSessions(groupId, date);
+  const found = (type: "lunch" | "dinner") =>
+    existing.find((s) => s.mealType === type);
+  if (found("lunch") && found("dinner")) {
+    return { lunch: found("lunch")!, dinner: found("dinner")! };
+  }
+
+  const missing = (["lunch", "dinner"] as const)
+    .filter((type) => !found(type))
+    .map((mealType) => ({ groupId, sessionDate: date, mealType }));
+  await db.insert(mealSessions).values(missing).onConflictDoNothing();
+
+  const rows = await selectSessions(groupId, date);
+  return {
+    lunch: rows.find((s) => s.mealType === "lunch")!,
+    dinner: rows.find((s) => s.mealType === "dinner")!,
+  };
 }
 
 export async function getSessionSuggestions(

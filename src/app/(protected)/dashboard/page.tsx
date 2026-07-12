@@ -15,12 +15,17 @@ export default async function DashboardPage() {
   const group = await getGroupContext(userId);
   if (!group) redirect("/onboarding");
 
-  const { lunch, dinner } = await getOrCreateTodaySessions(group.id, group.timezone);
+  // The pantry list is keyed on the group, not the sessions — fetch it alongside
+  // the session bootstrap rather than waiting on it.
+  const [{ lunch, dinner }, available] = await Promise.all([
+    getOrCreateTodaySessions(group.id, group.timezone),
+    getAvailableIngredientNames(group.id),
+  ]);
+
   const ids = [lunch.id, dinner.id];
-  const [voteStates, finalized, available] = await Promise.all([
+  const [voteStates, finalized] = await Promise.all([
     getVoteStateForSessions(ids, userId),
     getFinalizedMealsForSessions(ids),
-    getAvailableIngredientNames(group.id),
   ]);
 
   const bundle = (session: MealSession): SessionBundle => ({

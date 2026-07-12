@@ -89,19 +89,21 @@ export async function getVoteStateForSessions(
   userId: string,
 ): Promise<Map<string, SessionVoteState>> {
   if (sessionIds.length === 0) return new Map();
-  const suggestions = await db
-    .select()
-    .from(mealSuggestions)
-    .where(inArray(mealSuggestions.sessionId, sessionIds))
-    .orderBy(mealSuggestions.createdAt);
-  const voteRows = await db
-    .select({
-      sessionId: votes.sessionId,
-      suggestionId: votes.suggestionId,
-      userId: votes.userId,
-    })
-    .from(votes)
-    .where(inArray(votes.sessionId, sessionIds));
+  const [suggestions, voteRows] = await Promise.all([
+    db
+      .select()
+      .from(mealSuggestions)
+      .where(inArray(mealSuggestions.sessionId, sessionIds))
+      .orderBy(mealSuggestions.createdAt),
+    db
+      .select({
+        sessionId: votes.sessionId,
+        suggestionId: votes.suggestionId,
+        userId: votes.userId,
+      })
+      .from(votes)
+      .where(inArray(votes.sessionId, sessionIds)),
+  ]);
   return buildVoteState(sessionIds, suggestions, voteRows, userId);
 }
 

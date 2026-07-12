@@ -9,6 +9,7 @@ import { groupMembers, groups, users } from "@/db/schema";
 import {
   createGroupForUser,
   getActiveGroup,
+  getGroupContext,
   joinGroupForUser,
   leaveGroupForUser,
   promoteMemberToAdmin,
@@ -41,6 +42,35 @@ test("joining with an unknown code errors", async () => {
   expect((await joinGroupForUser("cara", "ZZZZZZ")).error).toBe(
     "No group found for that code",
   );
+});
+
+// The context (role + member count) is built by one correlated subquery. The
+// second group is the point of this test: an uncorrelated count would tally every
+// membership row in the table and still look right with only one group around.
+test("getGroupContext carries the caller's role and the group's member count", async () => {
+  await db.insert(users).values({ id: "dave", email: "dave@x.y" });
+  const solo = await createGroupForUser("dave", "Solo Flat");
+
+  const alice = await getGroupContext("alice");
+  expect(alice).toMatchObject({ name: "Flat 302", role: "admin", memberCount: 2 });
+  expect(alice!.timezone).toBeTruthy();
+
+  const bob = await getGroupContext("bob");
+  expect(bob).toMatchObject({ id: alice!.id, role: "member", memberCount: 2 });
+
+  expect(await getGroupContext("dave")).toMatchObject({
+    name: "Solo Flat",
+    role: "admin",
+    memberCount: 1,
+  });
+
+  // Leave the shared fixture as we found it — later tests assert on total rows.
+  await db.delete(groups).where(eq(groups.id, solo.groupId!));
+  await db.delete(users).where(eq(users.id, "dave"));
+});
+
+test("getGroupContext is null for a user with no group", async () => {
+  expect(await getGroupContext("cara")).toBeNull();
 });
 
 test("admin can promote and remove members; non-admin cannot", async () => {

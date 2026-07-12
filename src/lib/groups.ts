@@ -2,6 +2,7 @@ import { randomInt } from "node:crypto";
 import { cache } from "react";
 
 import { and, asc, eq, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 
 import { db } from "@/db";
 import { groupMembers, groups } from "@/db/schema";
@@ -29,19 +30,16 @@ async function membershipOf(client: DbClient, userId: string) {
   return m ?? null;
 }
 
-/** The user's single active group (earliest membership), or null. Cached per request. */
-export const getActiveGroup = cache(
-  async (userId: string): Promise<ActiveGroup | null> => {
-    const rows = await db
-      .select({ id: groups.id, name: groups.name })
-      .from(groupMembers)
-      .innerJoin(groups, eq(groupMembers.groupId, groups.id))
-      .where(eq(groupMembers.userId, userId))
-      .orderBy(asc(groupMembers.joinedAt))
-      .limit(1);
-    return rows[0] ?? null;
-  },
-);
+/**
+ * The user's single active group (earliest membership), or null.
+ *
+ * Delegates to getGroupContext so both accessors share one React `cache` entry:
+ * a page that hits this after the layout has loaded the context pays no query.
+ */
+export async function getActiveGroup(userId: string): Promise<ActiveGroup | null> {
+  const group = await getGroupContext(userId);
+  return group ? { id: group.id, name: group.name } : null;
+}
 
 const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no ambiguous chars
 
@@ -117,29 +115,32 @@ export interface GroupContext {
   memberCount: number;
 }
 
-/** The user's active group with their role and the member count. Cached per request. */
+/**
+ * The user's active group with their role and the member count. Cached per request.
+ *
+ * The member count rides along as a correlated subquery so the whole context is
+ * one round trip — this runs on every protected page via the layout.
+ */
 export const getGroupContext = cache(
   async (userId: string): Promise<GroupContext | null> => {
+    const counted = alias(groupMembers, "counted");
     const [membership] = await db
       .select({
         id: groups.id,
         name: groups.name,
         timezone: groups.timezone,
         role: groupMembers.role,
+        memberCount: sql<number>`(
+          select count(*)::int from ${groupMembers} as counted
+          where ${counted.groupId} = ${groups.id}
+        )`,
       })
       .from(groupMembers)
       .innerJoin(groups, eq(groupMembers.groupId, groups.id))
       .where(eq(groupMembers.userId, userId))
       .orderBy(asc(groupMembers.joinedAt))
       .limit(1);
-    if (!membership) return null;
-
-    const [{ count }] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(groupMembers)
-      .where(eq(groupMembers.groupId, membership.id));
-
-    return { ...membership, memberCount: count };
+    return membership ?? null;
   },
 );
 

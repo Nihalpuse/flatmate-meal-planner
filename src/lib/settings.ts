@@ -2,6 +2,7 @@ import { asc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { groupMembers, groups, users } from "@/db/schema";
+import type { GroupContext } from "@/lib/groups";
 
 export interface MemberInfo {
   id: string;
@@ -18,34 +19,37 @@ export interface GroupSettings {
   members: MemberInfo[];
 }
 
-export async function getGroupSettings(userId: string): Promise<GroupSettings | null> {
-  const [membership] = await db
-    .select({ groupId: groupMembers.groupId, role: groupMembers.role })
-    .from(groupMembers)
-    .where(eq(groupMembers.userId, userId))
-    .orderBy(asc(groupMembers.joinedAt))
-    .limit(1);
-  if (!membership) return null;
-
-  const [group] = await db
-    .select({ name: groups.name, inviteCode: groups.inviteCode })
-    .from(groups)
-    .where(eq(groups.id, membership.groupId))
-    .limit(1);
-  if (!group) return null;
-
-  const memberRows = await db
-    .select({ id: users.id, name: users.name, role: groupMembers.role })
-    .from(groupMembers)
-    .innerJoin(users, eq(groupMembers.userId, users.id))
-    .where(eq(groupMembers.groupId, membership.groupId))
-    .orderBy(asc(groupMembers.joinedAt));
+/**
+ * Settings for a group the caller has already resolved.
+ *
+ * Takes the group context rather than a userId: the protected layout has already
+ * loaded the id, name and role, so this only fetches what it doesn't know — the
+ * invite code and the member list.
+ */
+export async function getGroupSettings(
+  group: GroupContext,
+  userId: string,
+): Promise<GroupSettings | null> {
+  const [[row], memberRows] = await Promise.all([
+    db
+      .select({ inviteCode: groups.inviteCode })
+      .from(groups)
+      .where(eq(groups.id, group.id))
+      .limit(1),
+    db
+      .select({ id: users.id, name: users.name, role: groupMembers.role })
+      .from(groupMembers)
+      .innerJoin(users, eq(groupMembers.userId, users.id))
+      .where(eq(groupMembers.groupId, group.id))
+      .orderBy(asc(groupMembers.joinedAt)),
+  ]);
+  if (!row) return null;
 
   return {
-    id: membership.groupId,
+    id: group.id,
     name: group.name,
-    inviteCode: group.inviteCode,
-    role: membership.role,
+    inviteCode: row.inviteCode,
+    role: group.role,
     members: memberRows.map((m) => ({ ...m, isYou: m.id === userId })),
   };
 }
