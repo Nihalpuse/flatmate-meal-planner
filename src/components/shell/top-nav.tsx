@@ -22,6 +22,7 @@ export function TopNav({ groupName }: { groupName: string }) {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={item.prefetch}
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "font-semibold",
