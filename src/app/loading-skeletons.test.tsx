@@ -4,6 +4,7 @@ import { render, screen } from "@testing-library/react";
 import DashboardLoading from "./(protected)/dashboard/loading";
 import HistoryLoading from "./(protected)/history/loading";
 import PantryLoading from "./(protected)/pantry/loading";
+import SettingsLoading from "./(protected)/settings/loading";
 
 // A <section> only exposes role="region" once it has an accessible name — without
 // one it is a generic div, and the aria-busy state never reaches assistive tech.
@@ -12,6 +13,7 @@ const skeletons = [
   { name: "dashboard", Component: DashboardLoading, label: /loading dashboard/i, rows: 5 },
   { name: "pantry", Component: PantryLoading, label: /loading pantry/i, rows: 5 },
   { name: "history", Component: HistoryLoading, label: /loading history/i, rows: 4 },
+  { name: "settings", Component: SettingsLoading, label: /loading settings/i, rows: 6 },
 ];
 
 test.each(skeletons)(
