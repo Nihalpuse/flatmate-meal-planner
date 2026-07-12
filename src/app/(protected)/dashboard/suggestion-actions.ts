@@ -13,7 +13,7 @@ import {
   type DishHit,
 } from "@/lib/dishes";
 import { getGroupContext } from "@/lib/groups";
-import { rateLimit } from "@/lib/rate-limit";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { addCatalogSuggestion, removeSuggestion } from "@/lib/suggestions";
 
 export type SuggestionActionState = { error?: string };
@@ -71,7 +71,7 @@ export async function addSuggestionWithAI(
     return {};
   }
 
-  if (!rateLimit(`dish-ai:${session.user.id}`, 20, 60_000)) {
+  if (!(await checkRateLimit(`dish-ai:${session.user.id}`, 20, 60_000))) {
     return { error: "Too many attempts. Try again in a minute." };
   }
 

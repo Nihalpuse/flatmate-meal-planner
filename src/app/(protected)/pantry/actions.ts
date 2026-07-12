@@ -13,7 +13,7 @@ import { isUniqueViolation } from "@/lib/db-errors";
 import { getActiveGroup } from "@/lib/groups";
 import { resolveMergedValues } from "@/lib/pantry/merge";
 import { ingredientSchema } from "@/lib/pantry/validation";
-import { rateLimit } from "@/lib/rate-limit";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export type PantryState = { error?: string; ok?: boolean };
 
@@ -103,7 +103,7 @@ export async function parsePurchaseText(text: string): Promise<ParsePurchaseStat
   const trimmed = text.trim();
   if (!trimmed) return { error: "Type what you bought first." };
 
-  if (!rateLimit(`purchase:${session.user.id}`, 15, 60_000)) {
+  if (!(await checkRateLimit(`purchase:${session.user.id}`, 15, 60_000))) {
     return { error: "Too many attempts. Try again in a minute." };
   }
 

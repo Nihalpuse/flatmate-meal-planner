@@ -8,6 +8,11 @@ const envSchema = z.object({
   // Optional: when both are set, the Google sign-in button is shown.
   AUTH_GOOGLE_ID: z.string().min(1).optional(),
   AUTH_GOOGLE_SECRET: z.string().min(1).optional(),
+  // Optional: when both are set, rate limiting is shared across server instances.
+  // Without them it falls back to per-instance memory — fine for one server, not
+  // for a multi-instance deployment. See lib/rate-limit.ts.
+  UPSTASH_REDIS_REST_URL: z.url().optional(),
+  UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
   NEXT_PUBLIC_APP_URL: z.url().default("http://localhost:3000"),
 });
 
@@ -18,5 +23,7 @@ export const env = envSchema.parse({
   GEMINI_API_KEY: process.env.GEMINI_API_KEY,
   AUTH_GOOGLE_ID: process.env.AUTH_GOOGLE_ID,
   AUTH_GOOGLE_SECRET: process.env.AUTH_GOOGLE_SECRET,
+  UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
+  UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
 });

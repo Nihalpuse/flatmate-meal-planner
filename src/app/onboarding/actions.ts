@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { createGroupForUser, joinGroupForUser } from "@/lib/groups";
-import { rateLimit } from "@/lib/rate-limit";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export type OnboardingState = { error?: string };
 
@@ -39,7 +39,7 @@ export async function joinGroup(
   if (!session?.user?.id) redirect("/login");
 
   // Blunts invite-code brute forcing.
-  if (!rateLimit(`join:${session.user.id}`, 10, 60_000)) {
+  if (!(await checkRateLimit(`join:${session.user.id}`, 10, 60_000))) {
     return { error: "Too many attempts. Try again in a minute." };
   }
 
