@@ -1,11 +1,7 @@
 import { asc, sql } from "drizzle-orm";
-import { unstable_cache } from "next/cache";
 
 import { db } from "@/db";
 import { dishes } from "@/db/schema";
-
-/** Cache tag for the dish catalog. Invalidate after any write to `dishes`. */
-export const DISHES_TAG = "dishes";
 
 export interface DishHit {
   id: string;
@@ -24,20 +20,6 @@ export async function searchDishes(query: string, limit = 8): Promise<DishHit[]>
     .orderBy(asc(dishes.name))
     .limit(limit);
 }
-
-/**
- * searchDishes behind the Next data cache.
- *
- * The catalog is global and append-only, but the combobox queries it on every
- * keystroke (debounced 250ms) for every user, so the same handful of prefixes
- * get hit constantly. Keyed on the normalized query; dropped by DISHES_TAG when
- * a new dish is added.
- */
-export const searchDishesCached = unstable_cache(
-  async (query: string): Promise<DishHit[]> => searchDishes(query),
-  ["dish-search"],
-  { tags: [DISHES_TAG], revalidate: 3600 },
-);
 
 /** Exact (case-insensitive) catalog lookup. Lets callers skip the AI for a known dish. */
 export async function findDishByName(name: string): Promise<DishHit | null> {

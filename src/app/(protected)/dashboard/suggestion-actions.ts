@@ -5,14 +5,10 @@ import { revalidatePath, updateTag } from "next/cache";
 
 import { auth } from "@/auth";
 import { parseDish } from "@/lib/ai/gemini";
-import {
-  DISHES_TAG,
-  findDishByName,
-  searchDishesCached,
-  upsertAiDish,
-  type DishHit,
-} from "@/lib/dishes";
+import { findDishByName, upsertAiDish, type DishHit } from "@/lib/dishes";
 import { getGroupContext } from "@/lib/groups";
+
+import { DISHES_TAG, searchDishesCached } from "./dish-cache";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { addCatalogSuggestion, removeSuggestion } from "@/lib/suggestions";
 
