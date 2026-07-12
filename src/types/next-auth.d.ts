@@ -9,5 +9,7 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     id?: string;
+    /** Token version at issue time. Stale against the user's current one = revoked. */
+    v?: number;
   }
 }

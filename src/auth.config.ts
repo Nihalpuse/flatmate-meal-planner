@@ -12,7 +12,12 @@ const PROTECTED_PREFIXES = [
 export const authConfig = {
   trustHost: true,
   pages: { signIn: "/login" },
-  session: { strategy: "jwt" },
+  // Credentials sign-in forces the jwt strategy: @auth/core always encodes a token
+  // for it and never calls adapter.createSession, so the sessions table can never be
+  // used while password login exists. 7 days rather than the 30-day default, because
+  // a stolen cookie stays usable for the whole window. Revocation before that window
+  // is up is handled by the token version — see lib/token-version.ts.
+  session: { strategy: "jwt", maxAge: 7 * 24 * 60 * 60 },
   providers: [],
   callbacks: {
     authorized({ auth, request }) {

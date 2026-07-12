@@ -9,6 +9,7 @@ import { authConfig } from "@/auth.config";
 import { db } from "@/db";
 import { accounts, sessions, users, verificationTokens } from "@/db/schema";
 import { signInSchema } from "@/lib/auth/validation";
+import { currentTokenVersion, isTokenVersionCurrent } from "@/lib/token-version";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -18,6 +19,40 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     sessionsTable: sessions,
     verificationTokensTable: verificationTokens,
   }),
+  callbacks: {
+    ...authConfig.callbacks,
+    /**
+     * Overrides the edge-safe jwt callback from auth.config with one that can reach
+     * the database, which is what makes stateless sessions revocable.
+     *
+     * It lives here rather than in auth.config because that config is also what the
+     * proxy runs at the edge, where there is no database. The proxy therefore only
+     * checks that a token decrypts — a revoked one still passes its gate. That is
+     * fine: it is a coarse filter, and every page and action calls auth() from this
+     * module, where the version is checked and a stale token is rejected outright.
+     */
+    async jwt({ token, user }) {
+      if (user?.id) {
+        token.id = user.id;
+        token.v = (await currentTokenVersion(user.id)) ?? 0;
+        return token;
+      }
+
+      // Auth.js types the token as Record<string, unknown>, and it is reconstructed
+      // from a cookie, so narrow rather than assert. A token carrying no id cannot be
+      // checked; the session callback then leaves user.id unset and every page turns
+      // that into a redirect to /login.
+      const userId = typeof token.id === "string" ? token.id : null;
+      if (!userId) return token;
+      const stamped = typeof token.v === "number" ? token.v : undefined;
+
+      // The version moved on without us, or the user is gone: this token is dead.
+      // Returning null makes Auth.js drop the session and clear the cookie.
+      const current = await currentTokenVersion(userId);
+      if (!isTokenVersionCurrent(stamped, current)) return null;
+      return token;
+    },
+  },
   providers: [
     Credentials({
       credentials: { email: {}, password: {} },

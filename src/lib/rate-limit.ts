@@ -1,7 +1,6 @@
 import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
 
-import { env } from "@/env";
+import { redis } from "@/lib/redis";
 
 /**
  * Fixed-window in-memory rate limiter. Per server instance only.
@@ -31,14 +30,6 @@ export function rateLimit(
 export function resetRateLimits(): void {
   buckets.clear();
 }
-
-const redis =
-  env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN
-    ? new Redis({
-        url: env.UPSTASH_REDIS_REST_URL,
-        token: env.UPSTASH_REDIS_REST_TOKEN,
-      })
-    : null;
 
 /** True when limits hold across every server instance rather than per-process. */
 export const isDistributedRateLimit = redis !== null;

@@ -9,6 +9,7 @@ import {
   promoteMember,
   removeMember,
   rotateInviteCode,
+  signOutEverywhere,
 } from "@/app/(protected)/settings/actions";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { Button } from "@/components/ui/button";
@@ -158,6 +159,22 @@ export function SettingsView({
 
       <GlassCard className="space-y-2">
         <Kicker>Danger zone</Kicker>
+        <Button
+          variant="outline"
+          disabled={pending}
+          className="w-full"
+          onClick={() => {
+            if (
+              window.confirm(
+                "Sign out of every device? You'll need to log in again everywhere.",
+              )
+            ) {
+              run(signOutEverywhere);
+            }
+          }}
+        >
+          Sign out of all devices
+        </Button>
         <Button
           variant="outline"
           disabled={pending}
