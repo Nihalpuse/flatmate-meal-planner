@@ -6,6 +6,10 @@ const PROTECTED_PREFIXES = [
   "/history",
   "/settings",
   "/onboarding",
+  // Requires a session, but not a confirmed address — it is where unconfirmed users
+  // land. Note "/verify" (the emailed link) is deliberately absent: it is opened on
+  // whatever device has the inbox, which usually has no session at all.
+  "/verify-email",
 ];
 
 /** Edge-safe config: no DB, no providers — used by the proxy for route protection. */
@@ -16,7 +20,7 @@ export const authConfig = {
   // for it and never calls adapter.createSession, so the sessions table can never be
   // used while password login exists. 7 days rather than the 30-day default, because
   // a stolen cookie stays usable for the whole window. Revocation before that window
-  // is up is handled by the token version — see lib/token-version.ts.
+  // is up is handled by the token version — see lib/auth-state.ts.
   session: { strategy: "jwt", maxAge: 7 * 24 * 60 * 60 },
   providers: [],
   callbacks: {
@@ -33,6 +37,9 @@ export const authConfig = {
     },
     session({ session, token }) {
       if (token.id) session.user.id = token.id as string;
+      // Re-stamped onto the token from the cache on every request (see auth.ts), so
+      // pages can gate on a confirmed address without paying a query for it.
+      session.user.emailConfirmed = token.ev === true;
       return session;
     },
   },

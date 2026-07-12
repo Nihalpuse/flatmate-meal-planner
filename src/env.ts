@@ -13,6 +13,12 @@ const envSchema = z.object({
   // for a multi-instance deployment. See lib/rate-limit.ts.
   UPSTASH_REDIS_REST_URL: z.url().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
+  // Optional: when both are set, verification emails are actually sent. Without them
+  // the mail is logged to the server console instead, which keeps local development
+  // working without a sending domain — see lib/email.ts, which refuses that fallback
+  // in production.
+  RESEND_API_KEY: z.string().min(1).optional(),
+  EMAIL_FROM: z.string().min(1).optional(),
   NEXT_PUBLIC_APP_URL: z.url().default("http://localhost:3000"),
 });
 
@@ -25,5 +31,7 @@ export const env = envSchema.parse({
   AUTH_GOOGLE_SECRET: process.env.AUTH_GOOGLE_SECRET,
   UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
   UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
+  RESEND_API_KEY: process.env.RESEND_API_KEY,
+  EMAIL_FROM: process.env.EMAIL_FROM,
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
 });

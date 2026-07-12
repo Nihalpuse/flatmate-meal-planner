@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { isTokenVersionCurrent } from "./token-version";
+import { isTokenVersionCurrent } from "./auth-state";
 
 test("a token stamped with the user's current version is accepted", () => {
   expect(isTokenVersionCurrent(3, 3)).toBe(true);

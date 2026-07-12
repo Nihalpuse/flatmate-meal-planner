@@ -36,7 +36,7 @@ export const users = pgTable("users", {
   password: text("password"), // bcrypt hash for Credentials users (null for OAuth)
   // Stamped into every JWT at sign-in and re-checked on each request. Bumping it
   // invalidates every token already issued to this user — the only way to revoke a
-  // stateless session. See lib/token-version.ts.
+  // stateless session. See lib/auth-state.ts.
   tokenVersion: integer("token_version").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

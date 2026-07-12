@@ -10,7 +10,7 @@ import {
   removeMemberFromGroup,
   rotateGroupInviteCode,
 } from "@/lib/groups";
-import { revokeUserSessions } from "@/lib/token-version";
+import { revokeUserSessions } from "@/lib/auth-state";
 
 export type SettingsActionState = { error?: string };
 

@@ -9,7 +9,7 @@ import { authConfig } from "@/auth.config";
 import { db } from "@/db";
 import { accounts, sessions, users, verificationTokens } from "@/db/schema";
 import { signInSchema } from "@/lib/auth/validation";
-import { currentTokenVersion, isTokenVersionCurrent } from "@/lib/token-version";
+import { currentAuthState, isTokenVersionCurrent, markEmailVerified } from "@/lib/auth-state";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -31,10 +31,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
      * fine: it is a coarse filter, and every page and action calls auth() from this
      * module, where the version is checked and a stale token is rejected outright.
      */
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user?.id) {
+        // Auth.js creates OAuth users with emailVerified: null regardless of what the
+        // provider said (see handle-login.js), so Google users would otherwise be
+        // stuck behind the verification gate forever. Google does tell us, via the
+        // OIDC email_verified claim — signIn refuses the sign-in when it is false, so
+        // reaching here means the address is confirmed.
+        if (account?.provider === "google") {
+          await markEmailVerified(user.id);
+        }
+
+        const state = await currentAuthState(user.id);
         token.id = user.id;
-        token.v = (await currentTokenVersion(user.id)) ?? 0;
+        token.v = state?.version ?? 0;
+        token.ev = state?.emailConfirmed ?? false;
         return token;
       }
 
@@ -48,9 +59,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       // The version moved on without us, or the user is gone: this token is dead.
       // Returning null makes Auth.js drop the session and clear the cookie.
-      const current = await currentTokenVersion(userId);
-      if (!isTokenVersionCurrent(stamped, current)) return null;
+      const state = await currentAuthState(userId);
+      if (!isTokenVersionCurrent(stamped, state?.version ?? null)) return null;
+
+      // Re-stamped from the cache on every request rather than trusted from the token,
+      // so verifying takes effect on the very next page load instead of at next login.
+      token.ev = state?.emailConfirmed ?? false;
       return token;
+    },
+    /**
+     * Refuse a Google sign-in whose address Google itself has not confirmed. Without
+     * this, the email_verified claim is ignored and an unverified Google address would
+     * sail past the gate the credentials flow has to earn.
+     */
+    signIn({ account, profile }) {
+      if (account?.provider !== "google") return true;
+      return profile?.email_verified === true;
     },
   },
   providers: [

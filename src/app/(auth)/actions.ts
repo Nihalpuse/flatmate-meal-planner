@@ -9,9 +9,10 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { signInSchema, signUpSchema } from "@/lib/auth/validation";
 import { isUniqueViolation } from "@/lib/db-errors";
+import { EmailNotSentError } from "@/lib/email";
 import { checkRateLimit } from "@/lib/rate-limit";
-
-import { clientIp } from "./client-ip";
+import { sendVerificationEmail } from "@/lib/send-verification";
+import { clientIp } from "@/server/client-ip";
 
 export type AuthState = { error?: string; message?: string };
 
@@ -95,11 +96,22 @@ export async function signUp(
     throw error;
   }
 
+  // Send before signing in. If the mail cannot go out we still let them in — the
+  // account exists either way, and /verify-email offers a resend. Swallowing the
+  // failure here beats leaving a user with an account they were never told how to
+  // confirm.
+  try {
+    await sendVerificationEmail(parsed.data.email);
+  } catch (error) {
+    if (!(error instanceof EmailNotSentError)) throw error;
+    console.error("Verification email failed at signup", error);
+  }
+
   try {
     await authSignIn("credentials", {
       email: parsed.data.email,
       password: parsed.data.password,
-      redirectTo: "/onboarding",
+      redirectTo: "/verify-email",
     });
   } catch (error) {
     if (error instanceof AuthError) {
