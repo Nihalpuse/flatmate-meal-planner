@@ -39,6 +39,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return { id: user.id, name: user.name, email: user.email };
       },
     }),
-    Google({ allowDangerousEmailAccountLinking: true }),
+    /**
+     * No allowDangerousEmailAccountLinking.
+     *
+     * With it on, signing in with Google silently attaches the Google identity to
+     * any existing user row with the same email. Since credentials signup never
+     * verifies the address, anyone could register victim@example.com with a password
+     * of their choosing, wait for the real owner to sign in with Google, and then log
+     * into the linked account with that password. Auth.js now refuses the link and
+     * reports OAuthAccountNotLinked, which the login page explains.
+     *
+     * Re-enabling this is only safe once credentials signup verifies the email.
+     */
+    Google,
   ],
 });

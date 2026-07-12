@@ -18,9 +18,22 @@ export default async function LoginPage({
   return (
     <div className="space-y-4">
       {error ? (
-        <p className="text-destructive text-sm">Google sign-in failed. Please try again.</p>
+        <p className="text-destructive text-sm">{signInErrorMessage(error)}</p>
       ) : null}
       <LoginForm googleEnabled={googleEnabled} />
     </div>
   );
+}
+
+/**
+ * Auth.js reports OAuthAccountNotLinked when the Google account's email already
+ * belongs to a password account. We deliberately do not auto-link those (see
+ * auth.ts), so say what happened instead of a generic failure — otherwise the user
+ * just sees Google "fail" with no way forward.
+ */
+function signInErrorMessage(error: string): string {
+  if (error === "OAuthAccountNotLinked") {
+    return "This email already has an account with a password. Sign in with your password below.";
+  }
+  return "Google sign-in failed. Please try again.";
 }

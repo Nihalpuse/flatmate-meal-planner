@@ -11,6 +11,8 @@ import { signInSchema, signUpSchema } from "@/lib/auth/validation";
 import { isUniqueViolation } from "@/lib/db-errors";
 import { checkRateLimit } from "@/lib/rate-limit";
 
+import { clientIp } from "./client-ip";
+
 export type AuthState = { error?: string; message?: string };
 
 export async function signIn(
@@ -23,6 +25,13 @@ export async function signIn(
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
+  // Two budgets, deliberately. The per-email one stops a password brute force on a
+  // single account; it does nothing against credential stuffing, where each attempt
+  // uses a different email and so gets a fresh bucket. The per-IP one covers that.
+  const ip = await clientIp();
+  if (ip && !(await checkRateLimit(`signin-ip:${ip}`, 20, 60_000))) {
+    return { error: "Too many attempts. Try again in a minute." };
+  }
   if (!(await checkRateLimit(`signin:${parsed.data.email}`, 5, 60_000))) {
     return { error: "Too many attempts. Try again in a minute." };
   }
@@ -51,6 +60,14 @@ export async function signUp(
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
+  // Keyed only on the email, signup had no effective limit at all: an attacker just
+  // uses a fresh address each time and never touches the same bucket twice. The IP
+  // budget is what actually caps account creation. Generous enough for a flat whose
+  // members all sign up from the same wifi.
+  const ip = await clientIp();
+  if (ip && !(await checkRateLimit(`signup-ip:${ip}`, 10, 60 * 60_000))) {
+    return { error: "Too many sign-ups from this network. Try again later." };
+  }
   if (!(await checkRateLimit(`signup:${parsed.data.email}`, 3, 60_000))) {
     return { error: "Too many attempts. Try again in a minute." };
   }
