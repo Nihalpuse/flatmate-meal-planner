@@ -21,7 +21,15 @@ export const metadata: Metadata = {
   title: "Aaj Kya Banega?",
   description:
     "Decide what to cook in under 2 minutes — vote, get AI meal suggestions, and avoid repeats.",
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "32x32" },
+    ],
+    apple: "/icon.svg",
+  },
 };
+
 
 export default function RootLayout({
   children,
