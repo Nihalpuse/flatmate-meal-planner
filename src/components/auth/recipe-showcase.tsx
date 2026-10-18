@@ -110,72 +110,72 @@ export function RecipeShowcase() {
 
   return (
     <div
-      className="relative flex flex-col items-center justify-center w-full max-w-md mx-auto"
+      className="relative flex flex-col items-center justify-center w-full max-w-lg xl:max-w-xl mx-auto"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      <h2 className="mb-3 text-center text-lg xl:text-xl font-bold tracking-tight text-foreground">
+      <h2 className="mb-3.5 text-center text-xl xl:text-2xl font-extrabold tracking-tight text-foreground">
         Dinners everyone in the flat actually agrees on.
       </h2>
 
       {/* Main Bento Recipe Card */}
-      <div className="w-full overflow-hidden rounded-xl border border-border/80 bg-card/80 backdrop-blur-md shadow-lg transition-all duration-300">
+      <div className="w-full overflow-hidden rounded-2xl border border-border/80 bg-card/80 backdrop-blur-md shadow-xl transition-all duration-300">
         {/* Recipe Image with overlay badge */}
-        <div className="relative h-40 xl:h-44 w-full overflow-hidden bg-muted">
+        <div className="relative h-52 xl:h-60 w-full overflow-hidden bg-muted">
           <Image
             src={current.image}
             alt={current.title}
             fill
-            sizes="(max-width: 1024px) 100vw, 450px"
+            sizes="(max-width: 1024px) 100vw, 580px"
             priority={index === 0}
             className="object-cover transition-opacity duration-500 ease-in-out"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-black/25" />
 
           {/* Floating Badges */}
-          <div className="absolute top-2.5 left-2.5 flex items-center gap-2">
-            <span className="rounded-full bg-black/60 backdrop-blur-md px-2 py-0.5 text-[11px] font-medium text-white shadow-xs">
+          <div className="absolute top-3 left-3 flex items-center gap-2">
+            <span className="rounded-full bg-black/60 backdrop-blur-md px-3 py-1 text-xs font-medium text-white shadow-xs">
               {current.diet}
             </span>
           </div>
 
-          <div className="absolute top-2.5 right-2.5 flex items-center gap-1 rounded-full bg-emerald-500/90 backdrop-blur-md px-2 py-0.5 text-[11px] font-semibold text-white shadow-xs">
-            <Sparkles className="size-3" />
+          <div className="absolute top-3 right-3 flex items-center gap-1.5 rounded-full bg-emerald-500/90 backdrop-blur-md px-3 py-1 text-xs font-semibold text-white shadow-xs">
+            <Sparkles className="size-3.5" />
             <span>{current.pantryMatch}% Pantry Match</span>
           </div>
 
           {/* Bottom Time & Calorie Chips on image */}
-          <div className="absolute bottom-2.5 left-2.5 flex items-center gap-2 text-[11px] font-medium text-white/95">
-            <span className="flex items-center gap-1 rounded bg-black/50 backdrop-blur-md px-1.5 py-0.5">
-              <Clock className="size-3" /> {current.time}
+          <div className="absolute bottom-3 left-3 flex items-center gap-2.5 text-xs font-medium text-white/95">
+            <span className="flex items-center gap-1 rounded-md bg-black/50 backdrop-blur-md px-2 py-0.5">
+              <Clock className="size-3.5" /> {current.time}
             </span>
-            <span className="flex items-center gap-1 rounded bg-black/50 backdrop-blur-md px-1.5 py-0.5">
-              <Flame className="size-3" /> {current.calories}
+            <span className="flex items-center gap-1 rounded-md bg-black/50 backdrop-blur-md px-2 py-0.5">
+              <Flame className="size-3.5" /> {current.calories}
             </span>
           </div>
         </div>
 
         {/* Card Body */}
-        <div className="p-3.5 space-y-2.5">
+        <div className="p-4 xl:p-5 space-y-3">
           <div>
-            <h3 className="text-base font-bold text-card-foreground leading-snug">
+            <h3 className="text-lg xl:text-xl font-bold text-card-foreground leading-snug">
               {current.title}
             </h3>
-            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+            <p className="text-xs xl:text-sm text-muted-foreground mt-1 line-clamp-2">
               {current.tagline}
             </p>
           </div>
 
           {/* Roommate Votes Breakdown */}
-          <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-1.5 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-semibold text-muted-foreground">Votes:</span>
+          <div className="rounded-xl border border-border/60 bg-muted/30 px-3.5 py-2.5 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className="text-xs font-semibold text-muted-foreground">Votes:</span>
               <div className="flex items-center -space-x-1.5">
                 {current.votes.map((v, i) => (
                   <div
                     key={i}
                     title={`${v.name} voted yes`}
-                    className="flex size-6 items-center justify-center rounded-full border-2 border-background bg-card text-[11px] shadow-xs"
+                    className="flex size-7 xl:size-8 items-center justify-center rounded-full border-2 border-background bg-card text-xs shadow-xs"
                   >
                     <span>{v.avatar}</span>
                   </div>
@@ -183,8 +183,8 @@ export function RecipeShowcase() {
               </div>
             </div>
 
-            <div className="flex items-center gap-1 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-              <ThumbsUp className="size-2.5" />
+            <div className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+              <ThumbsUp className="size-3" />
               <span>{current.agreement}</span>
             </div>
           </div>
@@ -192,14 +192,14 @@ export function RecipeShowcase() {
       </div>
 
       {/* Navigation Controls & Indicators */}
-      <div className="mt-3 flex items-center justify-between w-full px-1">
+      <div className="mt-3.5 flex items-center justify-between w-full px-2">
         <button
           type="button"
           onClick={handlePrev}
           aria-label="Previous recipe"
-          className="flex size-7 items-center justify-center rounded-full border border-border/80 bg-background/80 hover:bg-accent text-foreground transition-all cursor-pointer shadow-xs active:scale-95"
+          className="flex size-8 items-center justify-center rounded-full border border-border/80 bg-background/80 hover:bg-accent text-foreground transition-all cursor-pointer shadow-xs active:scale-95"
         >
-          <ChevronLeft className="size-3.5" />
+          <ChevronLeft className="size-4" />
         </button>
 
         {/* Dots Indicator */}
@@ -210,10 +210,10 @@ export function RecipeShowcase() {
               type="button"
               onClick={() => setIndex(i)}
               aria-label={`Go to slide ${i + 1}`}
-              className={`h-1.5 rounded-full transition-all cursor-pointer ${
+              className={`h-2 rounded-full transition-all cursor-pointer ${
                 i === index
-                  ? "w-5 bg-primary"
-                  : "w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/60"
+                  ? "w-6 bg-primary"
+                  : "w-2 bg-muted-foreground/30 hover:bg-muted-foreground/60"
               }`}
             />
           ))}
@@ -223,17 +223,18 @@ export function RecipeShowcase() {
           type="button"
           onClick={handleNext}
           aria-label="Next recipe"
-          className="flex size-7 items-center justify-center rounded-full border border-border/80 bg-background/80 hover:bg-accent text-foreground transition-all cursor-pointer shadow-xs active:scale-95"
+          className="flex size-8 items-center justify-center rounded-full border border-border/80 bg-background/80 hover:bg-accent text-foreground transition-all cursor-pointer shadow-xs active:scale-95"
         >
-          <ChevronRight className="size-3.5" />
+          <ChevronRight className="size-4" />
         </button>
       </div>
 
       {/* Social Quote */}
-      <p className="mt-2 text-center text-[11px] text-muted-foreground italic">
+      <p className="mt-2.5 text-center text-xs text-muted-foreground italic">
         &ldquo;No more 7 PM &lsquo;what are we eating tonight?&rsquo; group chat panic.&rdquo;
       </p>
     </div>
   );
+
 }
 
