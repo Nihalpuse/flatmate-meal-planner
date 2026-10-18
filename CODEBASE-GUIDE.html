@@ -1,0 +1,1612 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FlatMate Meal Planner — Comprehensive Codebase &amp; Architecture Guide</title>
+<style>
+  :root {
+    --bg: #FBF1DC;
+    --surface: rgba(255, 255, 255, 0.65);
+    --surface-solid: #FFFDF7;
+    --fg: #241F17;
+    --muted: #6A5A38;
+    --primary: #A6690F;
+    --accent: #C98A2E;
+    --border: rgba(120, 90, 40, 0.20);
+    --border-strong: rgba(120, 90, 40, 0.36);
+    --code-bg: rgba(120, 90, 40, 0.09);
+    --pre-bg: #221A0F;
+    --pre-fg: #F4EAD6;
+    --warn-bg: rgba(201, 138, 46, 0.12);
+    --success-bg: rgba(46, 138, 70, 0.12);
+    --success-fg: #26723B;
+    --shadow: 0 6px 20px rgba(120, 90, 40, 0.10);
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #191309;
+      --surface: rgba(255, 240, 210, 0.06);
+      --surface-solid: #211809;
+      --fg: #F4E9D4;
+      --muted: #BDAC88;
+      --primary: #E0A94A;
+      --accent: #E0A94A;
+      --border: rgba(240, 220, 180, 0.16);
+      --border-strong: rgba(240, 220, 180, 0.28);
+      --code-bg: rgba(240, 220, 180, 0.10);
+      --pre-bg: #0C0904;
+      --pre-fg: #EFE3CA;
+      --warn-bg: rgba(224, 169, 74, 0.14);
+      --success-bg: rgba(74, 224, 120, 0.14);
+      --success-fg: #60D382;
+      --shadow: 0 6px 20px rgba(0, 0, 0, 0.40);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    font-size: 15.5px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(42rem 30rem at 10% -5%, rgba(251, 226, 168, 0.55), transparent 65%),
+      radial-gradient(38rem 28rem at 92% 8%, rgba(247, 217, 176, 0.45), transparent 62%);
+    pointer-events: none;
+  }
+  @media (prefers-color-scheme: dark) {
+    body::before {
+      background:
+        radial-gradient(42rem 30rem at 10% -5%, rgba(224, 169, 74, 0.10), transparent 65%),
+        radial-gradient(38rem 28rem at 92% 8%, rgba(201, 138, 46, 0.08), transparent 62%);
+    }
+  }
+
+  .layout {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 0 1.25rem 6rem;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+
+  @media (min-width: 1060px) {
+    .layout {
+      grid-template-columns: 260px minmax(0, 1fr);
+      align-items: start;
+      gap: 3rem;
+    }
+  }
+
+  /* ---------- header ---------- */
+  header.page {
+    grid-column: 1 / -1;
+    padding: 3.2rem 0 2rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0.5rem;
+  }
+  .kicker {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--primary);
+    font-weight: 700;
+    margin: 0 0 0.5rem;
+  }
+  header.page h1 {
+    margin: 0 0 0.5rem;
+    font-size: clamp(2rem, 5vw, 2.85rem);
+    line-height: 1.1;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+  }
+  header.page p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 1.05rem;
+    max-width: 60ch;
+  }
+
+  .guide-meta-bar {
+    margin-top: 1.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    align-items: center;
+  }
+
+  /* ---------- sidebar toc ---------- */
+  nav.toc {
+    font-size: 0.84rem;
+  }
+  @media (min-width: 1060px) {
+    nav.toc {
+      position: sticky;
+      top: 1.5rem;
+      max-height: calc(100vh - 3rem);
+      overflow-y: auto;
+      padding-right: 0.5rem;
+    }
+  }
+  nav.toc .toc-title {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  nav.toc ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: toc;
+  }
+  nav.toc li { counter-increment: toc; margin-bottom: 0.15rem; }
+  nav.toc a {
+    display: block;
+    padding: 0.35rem 0.5rem 0.35rem 2rem;
+    color: var(--muted);
+    text-decoration: none;
+    border-radius: 7px;
+    position: relative;
+    line-height: 1.35;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+  nav.toc a::before {
+    content: counter(toc, decimal-leading-zero);
+    position: absolute;
+    left: 0.45rem;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    opacity: 0.6;
+    color: var(--primary);
+  }
+  nav.toc a:hover {
+    color: var(--fg);
+    background: var(--code-bg);
+  }
+
+  /* search box */
+  .search-wrap {
+    margin-bottom: 1.1rem;
+    position: relative;
+  }
+  .search-input {
+    width: 100%;
+    padding: 0.45rem 0.75rem;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 9px;
+    font-family: var(--sans);
+    font-size: 0.85rem;
+    color: var(--fg);
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+  .search-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--code-bg);
+  }
+
+  @media (max-width: 1059px) {
+    nav.toc {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 1.1rem 1.25rem;
+      box-shadow: var(--shadow);
+    }
+  }
+
+  /* ---------- content ---------- */
+  main { min-width: 0; }
+
+  section.block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 1.8rem 1.8rem 2rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(10px) saturate(140%);
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+    scroll-margin-top: 1.5rem;
+  }
+  @supports not (backdrop-filter: blur(1px)) {
+    section.block { background: var(--surface-solid); }
+  }
+
+  h2 {
+    margin: 0 0 1.15rem;
+    font-size: 1.45rem;
+    font-weight: 800;
+    letter-spacing: -0.015em;
+    display: flex;
+    align-items: baseline;
+    gap: 0.65rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.65rem;
+  }
+  h2 .num {
+    font-family: var(--mono);
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--primary);
+    flex-shrink: 0;
+  }
+
+  h3 {
+    margin: 1.8rem 0 0.75rem;
+    font-size: 1.08rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--fg);
+  }
+  h3:first-of-type { margin-top: 0.5rem; }
+
+  h4 {
+    margin: 1.2rem 0 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-family: var(--mono);
+  }
+
+  p { margin: 0 0 0.9rem; }
+  p:last-child { margin-bottom: 0; }
+  strong { font-weight: 700; }
+
+  a { color: var(--primary); text-decoration-thickness: 1px; text-underline-offset: 2.5px; }
+  a:hover { text-decoration-thickness: 2px; }
+
+  ul { margin: 0 0 1rem; padding-left: 1.2rem; }
+  ul:last-child { margin-bottom: 0; }
+  li { margin-bottom: 0.35rem; }
+  li:last-child { margin-bottom: 0; }
+  li > ul { margin-top: 0.35rem; margin-bottom: 0.25rem; }
+
+  ol.steps { margin: 0 0 1rem; padding-left: 1.35rem; }
+  ol.steps li { margin-bottom: 0.4rem; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.85em;
+    background: var(--code-bg);
+    padding: 0.15em 0.42em;
+    border-radius: 5px;
+    word-break: break-word;
+  }
+
+  pre {
+    background: var(--pre-bg);
+    color: var(--pre-fg);
+    padding: 1.1rem 1.25rem;
+    border-radius: 14px;
+    overflow-x: auto;
+    margin: 0 0 1.2rem;
+    font-size: 0.84rem;
+    line-height: 1.6;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  pre:last-child { margin-bottom: 0; }
+  pre code {
+    background: none;
+    padding: 0;
+    font-size: inherit;
+    color: inherit;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+    margin: 0 0 1.3rem;
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    background: var(--surface-solid);
+  }
+  .table-wrap:last-child { margin-bottom: 0; }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.88rem;
+    min-width: 480px;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.65rem 0.95rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  th {
+    font-weight: 700;
+    font-size: 0.74rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: var(--code-bg);
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: var(--code-bg); }
+
+  .callout {
+    background: var(--warn-bg);
+    border-left: 3.5px solid var(--accent);
+    border-radius: 0 12px 12px 0;
+    padding: 0.95rem 1.2rem;
+    margin: 0 0 1.2rem;
+    font-size: 0.94rem;
+  }
+  .callout:last-child { margin-bottom: 0; }
+  .callout p:last-child { margin-bottom: 0; }
+
+  .callout-success {
+    background: var(--success-bg);
+    border-left: 3.5px solid var(--success-fg);
+  }
+
+  .lead {
+    color: var(--muted);
+    font-size: 1.02rem;
+    margin-bottom: 1.2rem;
+  }
+
+  /* badges */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.12rem 0.48rem;
+    border-radius: 999px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    line-height: 1.3;
+  }
+  .badge-pk { background: #8B5CF622; color: #7C3AED; border: 1px solid #7C3AED44; }
+  .badge-fk { background: #3B82F622; color: #2563EB; border: 1px solid #2563EB44; }
+  .badge-uk { background: #10B98122; color: #059669; border: 1px solid #05966944; }
+  .badge-idx { background: #F59E0B22; color: #D97706; border: 1px solid #D9770644; }
+  .badge-type { background: var(--code-bg); color: var(--fg); border: 1px solid var(--border); }
+  .badge-req { background: #EF44441E; color: #DC2626; border: 1px solid #DC262633; }
+  .badge-opt { background: var(--code-bg); color: var(--muted); border: 1px solid var(--border); }
+
+  /* collapsible schema cards */
+  details.schema-card {
+    border: 1px solid var(--border-strong);
+    border-radius: 14px;
+    margin-bottom: 1rem;
+    background: var(--surface-solid);
+    overflow: hidden;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  details.schema-card[open] {
+    box-shadow: 0 4px 16px rgba(120, 90, 40, 0.08);
+  }
+  details.schema-card summary {
+    padding: 0.85rem 1.15rem;
+    cursor: pointer;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    background: var(--surface);
+    user-select: none;
+  }
+  details.schema-card summary:hover {
+    background: var(--code-bg);
+  }
+  details.schema-card .table-name-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  details.schema-card .table-name {
+    font-family: var(--mono);
+    font-size: 1.02rem;
+    color: var(--primary);
+  }
+  details.schema-card .table-summary-text {
+    font-size: 0.86rem;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  details.schema-card .schema-content {
+    padding: 1.15rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .toggle-all-btn {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 7px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--primary);
+    cursor: pointer;
+    font-weight: 700;
+  }
+  .toggle-all-btn:hover {
+    background: var(--code-bg);
+  }
+
+  /* server action cards */
+  .action-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.1rem;
+    margin: 1.2rem 0;
+  }
+  .action-card {
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    padding: 1.1rem;
+    background: var(--surface-solid);
+  }
+  .action-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.6rem;
+  }
+  .action-title {
+    font-family: var(--mono);
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--primary);
+  }
+  .action-file {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+  .action-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.75rem;
+    font-size: 0.86rem;
+    margin-top: 0.65rem;
+    background: var(--code-bg);
+    padding: 0.65rem 0.85rem;
+    border-radius: 8px;
+  }
+
+  footer.page {
+    grid-column: 1 / -1;
+    color: var(--muted);
+    font-size: 0.88rem;
+    text-align: center;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+  }
+  .top-link {
+    display: inline-block;
+    margin-top: 0.9rem;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .top-link:hover { color: var(--primary); }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <header class="page" id="top">
+    <p class="kicker">Complete Codebase &amp; Architecture Reference</p>
+    <h1>FlatMate Meal Planner</h1>
+    <p>Comprehensive, self-contained guide covering all database schemas, server actions, authentication internals, concurrency locks, AI prompts, and domain rules — without having to inspect raw source files.</p>
+    <div class="guide-meta-bar">
+      <span class="badge badge-type">Next.js 16.2.7</span>
+      <span class="badge badge-type">React 19.2.4</span>
+      <span class="badge badge-type">Drizzle ORM</span>
+      <span class="badge badge-type">Neon Postgres</span>
+      <span class="badge badge-type">Auth.js v5</span>
+      <span class="badge badge-type">Gemini 2.5 Flash</span>
+      <span class="badge badge-type">Upstash Redis</span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <div class="search-wrap">
+      <input type="text" id="guideSearch" class="search-input" placeholder="Filter tables, actions, rules..." aria-label="Search guide content">
+    </div>
+    <div class="toc-title">
+      <span>Contents</span>
+      <span style="font-size: 0.6rem; opacity: 0.7;">16 Sections</span>
+    </div>
+    <ol>
+      <li><a href="#s1">What the app does</a></li>
+      <li><a href="#s2">Tech Stack</a></li>
+      <li><a href="#s3">Folder Map</a></li>
+      <li><a href="#s4">The 3-Layer Rule &amp; Actions</a></li>
+      <li><a href="#s5">Database Tables &amp; Schema</a></li>
+      <li><a href="#s6">How Auth Works</a></li>
+      <li><a href="#s7">Route Protection</a></li>
+      <li><a href="#s8">Feature &amp; AI Walkthrough</a></li>
+      <li><a href="#s9">Concurrency &amp; Race Fixes</a></li>
+      <li><a href="#s10">Rate Limiting Registry</a></li>
+      <li><a href="#s11">UI &amp; Design Specs</a></li>
+      <li><a href="#s12">Environment Variables</a></li>
+      <li><a href="#s13">Testing &amp; CI</a></li>
+      <li><a href="#s14">Commands</a></li>
+      <li><a href="#s15">Quick Index &amp; APIs</a></li>
+      <li><a href="#s16">Before you edit</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <!-- 1 -->
+    <section class="block" id="s1">
+      <h2><span class="num">01</span> What the app does</h2>
+      <ul>
+        <li><strong>Problem:</strong> Flatmates waste 15–20 minutes every single day debating what to cook, checking pantry ingredients manually, and haggling over dinner choices.</li>
+        <li><strong>Solution:</strong> A single shared web application where the flat votes on curated meal suggestions with automated grocery shortfall calculation.</li>
+        <li><strong>Goal:</strong> Daily meal decision made in under 2 minutes.</li>
+        <li><strong>App name shown to users:</strong> <strong>"Aaj Kya Banega?"</strong> ("What will be made today?")</li>
+      </ul>
+      <h3>The Complete Daily Loop</h3>
+<pre><code>1. Login / Sign up (Email+Password or Google OAuth)
+   ↓
+2. Join an existing flat via 6-char Invite Code OR Create a new Flat
+   ↓
+3. Pantry Management: Add ingredients manually or parse free text ("bought 2kg potatoes...") via Gemini AI
+   ↓
+4. Daily Session: First load of the day creates "lunch" &amp; "dinner" sessions (locked to flat's timezone)
+   ↓
+5. AI Suggestion: Gemini 2.5 Flash suggests 5 budget Indian dishes matching in-stock ingredients &amp; avoiding recent 10 meals
+   ↓
+6. Flat Voting: Live optimistic voting (polling every 8s) where flatmates vote / change votes
+   ↓
+7. Admin Finalization: Admin tallies within a locked SQL transaction (ties broken by earliest suggestion)
+   ↓
+8. Grocery Shortfall: Missing ingredients for the winning dish are automatically computed as a copyable shopping list</code></pre>
+    </section>
+
+    <!-- 2 -->
+    <section class="block" id="s2">
+      <h2><span class="num">02</span> Tech Stack</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Layer</th><th>Technology</th><th>Version / Flavor</th><th>Architectural Responsibility</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Framework</strong></td><td>Next.js</td><td>16.2.7 (App Router)</td><td>Server Components, Server Actions, Route Proxying (Edge middleware)</td></tr>
+            <tr><td><strong>UI Runtime</strong></td><td>React</td><td>19.2.4</td><td>Modern Concurrent React, <code>useOptimistic</code> for voting</td></tr>
+            <tr><td><strong>Language</strong></td><td>TypeScript</td><td>5.x (Strict)</td><td>End-to-end type safety from DB schema to client UI</td></tr>
+            <tr><td><strong>Styling</strong></td><td>Tailwind CSS</td><td>v4</td><td><code>@theme inline</code> CSS variables, dark/light theme tokens</td></tr>
+            <tr><td><strong>Components</strong></td><td>Base UI + CVA</td><td>shadcn style</td><td>Unstyled accessible primitives with class-variance-authority</td></tr>
+            <tr><td><strong>Icons</strong></td><td>Lucide React</td><td>Latest</td><td>Consistent iconography</td></tr>
+            <tr><td><strong>Animations</strong></td><td>Motion</td><td>Latest</td><td>Smooth micro-animations and route transitions</td></tr>
+            <tr><td><strong>Toasts</strong></td><td>Sonner</td><td>Latest</td><td>Non-blocking optimistic feedback toasts</td></tr>
+            <tr><td><strong>Theme</strong></td><td>Next-themes</td><td>Latest</td><td>Theme toggle (Honey Butter cream light &amp; espresso dark)</td></tr>
+            <tr><td><strong>Database</strong></td><td>Neon Postgres</td><td>Serverless</td><td>Relational primary data store with connection pooling</td></tr>
+            <tr><td><strong>ORM</strong></td><td>Drizzle ORM</td><td>drizzle-kit</td><td>Typesafe queries, schema definitions, automated migrations</td></tr>
+            <tr><td><strong>Authentication</strong></td><td>Auth.js</td><td>v5 (NextAuth beta)</td><td>Credentials (bcrypt) + Google OAuth, stateless JWT with DB versioning</td></tr>
+            <tr><td><strong>Password Hash</strong></td><td>bcryptjs</td><td>Cost 10</td><td>Salting and hashing for credentials authentication</td></tr>
+            <tr><td><strong>AI Engine</strong></td><td>Google Gemini</td><td><code>gemini-2.5-flash</code></td><td>Structured JSON generation via REST endpoint, 15s timeout</td></tr>
+            <tr><td><strong>Cache &amp; Rate Limit</strong></td><td>Upstash Redis</td><td>REST HTTP API</td><td>Distributed token-version cache &amp; sliding window rate limiters</td></tr>
+            <tr><td><strong>Email</strong></td><td>Resend</td><td>REST API</td><td>Transactional email delivery with SHA-256 link tokens</td></tr>
+            <tr><td><strong>Validation</strong></td><td>Zod</td><td>v4</td><td>Runtime validation for Env vars, actions, and AI payloads</td></tr>
+            <tr><td><strong>Testing</strong></td><td>Vitest + PGlite</td><td>In-Memory WASM</td><td>Unit tests + real Postgres integration tests without Docker</td></tr>
+            <tr><td><strong>Deployment</strong></td><td>Vercel</td><td>Production</td><td>Serverless edge functions and node runtime</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout">
+        <p><strong>Zero REST API Overhead:</strong> There is no <code>/api/*</code> route handlers layer in this application. All client-to-server operations occur exclusively through Next.js <strong>Server Actions</strong> marked with <code>"use server"</code>.</p>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="block" id="s3">
+      <h2><span class="num">03</span> Folder Map &amp; Responsibilities</h2>
+<pre><code>src/
+├── app/                              → App Router routes &amp; Server Actions
+│   ├── (auth)/                       → Unauthenticated login &amp; registration routes
+│   │   ├── actions.ts                → signIn, signUp, signOut server actions
+│   │   ├── login/page.tsx            → Credentials + Google login form
+│   │   └── register/page.tsx         → User registration form
+│   ├── (protected)/                  → Authenticated application routes
+│   │   ├── layout.tsx                → Gatekeeper: checks auth, email verification, group membership
+│   │   ├── dashboard/                → Main voting and meal suggestion screen
+│   │   │   ├── actions.ts            → generateSuggestions server action
+│   │   │   ├── suggestion-actions.ts → searchDishes, addSuggestionWithAI, removeSuggestion
+│   │   │   ├── vote-actions.ts       → castVote, clearVote, finalizeSession
+│   │   │   └── dish-cache.ts         → Cached dish catalog lookup with Next.js revalidateTag
+│   │   ├── pantry/                   → Ingredient inventory
+│   │   │   └── actions.ts            → saveIngredient, parsePurchaseAction, applyPurchasedItems
+│   │   ├── history/                  → Past finalized meals archive (last 60 entries)
+│   │   └── settings/                 → Flat &amp; user settings
+│   │       └── actions.ts            → signOutEverywhere, leaveGroup, removeMember, rotateInviteCode
+│   ├── onboarding/                   → Post-registration group creation &amp; joining
+│   │   └── actions.ts                → createGroup, joinGroup
+│   ├── verify-email/                 → "Check your inbox" screen for unverified users
+│   │   └── actions.ts                → resendVerificationAction
+│   ├── verify/page.tsx               → Public landing handler for clicked email links
+│   ├── globals.css                   → Honey Butter theme tokens &amp; Tailwind v4 directives
+│   └── page.tsx                      → Marketing landing page
+├── components/                       → Pure React UI Components
+│   ├── ui/                           → Base UI primitives (Button, GlassCard, Kicker, Dialog...)
+│   ├── shell/                        → App frame (Desktop top nav, Mobile bottom tab bar)
+│   ├── landing/                      → Landing page hero, benefits, and preview
+│   └── dashboard|pantry|history|settings|auth|onboarding/ → Feature-specific UI views
+├── lib/                              → Pure Business Logic &amp; DB Queries (NO 'next' imports allowed!)
+│   ├── ai/                           → Gemini prompts (prompt.ts), schemas, and parsers (parse.ts)
+│   ├── pantry/                       → Stock calculations, validation, and merge rules (merge.ts)
+│   ├── auth/                         → Zod schemas for login and signup (validation.ts)
+│   ├── auth-state.ts                 → Token version check, session revocation, Redis caching
+│   ├── votes.ts                      → Vote tallying, tie-breaking, transaction locks
+│   ├── suggestions.ts                → Cooldown enforcement, meal suggestion replacements
+│   ├── groups.ts                     → Flat invite code generation, role promotion, cleanup
+│   ├── dishes.ts                     → Dish catalog fuzzy search and AI upsert
+│   ├── sessions.ts                   → Lazy meal session creation in flat's timezone
+│   ├── email.ts                      → Resend email client with dev console logging fallback
+│   ├── rate-limit.ts                 → Upstash Redis sliding window &amp; in-memory fallback
+│   ├── redis.ts                      → Upstash Redis singleton
+│   └── architecture.test.ts          → Automated test guarding the "no next in lib/" rule
+├── db/                               → Database source of truth
+│   ├── schema.ts                     → All 12 Drizzle tables, enums, indexes, and relations
+│   └── index.ts                      → Neon Postgres pooled database client
+├── server/                           → Server-only utilities
+│   └── client-ip.ts                  → Edge/Node header extraction for client IP
+├── auth.ts                           → Server-side Auth.js configuration (has DB access)
+├── auth.config.ts                    → Edge-compatible Auth.js configuration (NO DB imports)
+├── proxy.ts                          → Next.js 16 route proxy (edge session pre-check)
+└── env.ts                            → Zod-validated environment variables configuration</code></pre>
+    </section>
+
+    <!-- 4 -->
+    <section class="block" id="s4">
+      <h2><span class="num">04</span> The 3-Layer Rule &amp; Complete Server Actions Registry</h2>
+      <p class="lead">The fundamental architectural pillar: strict separation of UI, orchestration, and business logic.</p>
+<pre><code>components/   →  UI Only (React 19). Calls Server Actions via useTransition / useActionState.
+     ↓
+app/*/actions →  Orchestration: Verifies session &amp; permissions, parses FormData, handles cache revalidation.
+     ↓
+lib/          →  Pure Domain Logic: Framework-free TypeScript. Interacts directly with Drizzle ORM.
+     ↓
+db/           →  Drizzle Schema &amp; Neon Postgres connection.</code></pre>
+      <ul>
+        <li><strong>Strict Prohibition:</strong> <code>src/lib/</code> is strictly forbidden from importing anything from <code>next/*</code> (e.g. <code>next/navigation</code>, <code>next/headers</code>, <code>next/cache</code>).</li>
+        <li><strong>Portability:</strong> This ensures all domain functions can be tested in pure Node/Vitest or extracted into a standalone worker/microservice without rewriting database interactions.</li>
+        <li><strong>Enforced by CI:</strong> <code>src/lib/architecture.test.ts</code> scans all files in <code>src/lib/</code> on every build and fails if any <code>next</code> import is discovered.</li>
+      </ul>
+
+      <h3>Complete Server Actions Registry</h3>
+      <p>Every server mutation in the application, its input arguments, permission requirements, and cache invalidation side effects:</p>
+      
+      <div class="action-grid">
+        <!-- Auth Actions -->
+        <div class="action-card">
+          <div class="action-card-header">
+            <span class="action-title">signIn(prevState, formData)</span>
+            <span class="action-file">src/app/(auth)/actions.ts</span>
+          </div>
+          <p>Authenticates email/password against bcrypt hash in <code>users</code> table.</p>
+          <div class="action-detail-grid">
+            <div><strong>Rate Limit:</strong> 20/min per IP, 5/min per email</div>
+            <div><strong>Calls:</strong> <code>authSignIn('credentials')</code></div>
+            <div><strong>Revalidation:</strong> Redirects to <code>/dashboard</code></div>
+          </div>
+        </div>
+
+        <div class="action-card">
+          <div class="action-card-header">
+            <span class="action-title">signUp(prevState, formData)</span>
+            <span class="action-file">src/app/(auth)/actions.ts</span>
+          </div>
+          <p>Creates new user with bcrypt password (cost 10) &amp; sends SHA-256 verification email.</p>
+          <div class="action-detail-grid">
+            <div><strong>Rate Limit:</strong> 10/hr per IP, 3/min per email</div>
+            <div><strong>Calls:</strong> <code>db.insert(users)</code>, <code>sendVerificationEmail</code></div>
+            <div><strong>Revalidation:</strong> Redirects to <code>/verify-email</code></div>
+          </div>
+        </div>
+
+        <!-- Dashboard Suggestion Actions -->
+        <div class="action-card">
+          <div class="action-card-header">
+            <span class="action-title">generateSuggestions(sessionId)</span>
+            <span class="action-file">src/app/(protected)/dashboard/actions.ts</span>
+          </div>
+          <p>Invokes Gemini to suggest 5 dishes matching available pantry ingredients.</p>
+          <div class="action-detail-grid">
+            <div><strong>Guards:</strong> Active group member + 30s session cooldown</div>
+            <div><strong>Calls:</strong> <code>claimGeneration()</code>, <code>generateMealSuggestions()</code></div>
+            <div><strong>Revalidation:</strong> <code>revalidatePath("/dashboard")</code></div>
+          </div>
+        </div>
+
+        <div class="action-card">
+          <div class="action-card-header">
+            <span class="action-title">addSuggestionWithAI(sessionId, dishName)</span>
+            <span class="action-file">src/app/(protected)/dashboard/suggestion-actions.ts</span>
+          </div>
+          <p>Searches known dishes first; if absent, asks Gemini for required ingredients and adds to session.</p>
+          <div class="action-detail-grid">
+            <div><strong>Rate Limit:</strong> 20/min per user (<code>dish-ai:${userId}</code>)</div>
+            <div><strong>Calls:</strong> <code>findDishByName</code>, <code>parseDish</code>, <code>upsertAiDish</code></div>
+            <div><strong>Revalidation:</strong> <code>updateTag("dishes")</code>, <code>revalidatePath("/dashboard")</code></div>
+          </div>
+        </div>
+
+        <!-- Voting Actions -->
+        <div class="action-card">
+          <div class="action-card-header">
+            <span class="action-title">castVote(sessionId, suggestionId)</span>
+            <span class="action-file">src/app/(protected)/dashboard/vote-actions.ts</span>
+          </div>
+          <p>Records or updates the user's vote. Automatically advances session status from <code>open</code> to <code>voting</code>.</p>
+          <div class="action-detail-grid">
+            <div><strong>Constraint:</strong> Unique index <code>(session_id, user_id)</code></div>
+            <div><strong>Calls:</strong> <code>castVoteForUser()</code></div>
+            <div><strong>Revalidation:</strong> <code>revalidatePath("/dashboard")</code></div>
+          </div>
+        </div>
+
+        <div class="action-card">
+          <div class="action-card-header">
+            <span class="action-title">finalizeSession(sessionId)</span>
+            <span class="action-file">src/app/(protected)/dashboard/vote-actions.ts</span>
+          </div>
+          <p>Admin only. Tallies votes in a locked SQL transaction, writes winner to <code>finalized_meals</code>.</p>
+          <div class="action-detail-grid">
+            <div><strong>Locking:</strong> <code>SELECT ... FOR UPDATE</code> on session row</div>
+            <div><strong>Calls:</strong> <code>finalizeSessionForGroup()</code></div>
+            <div><strong>Revalidation:</strong> <code>revalidatePath("/dashboard")</code></div>
+          </div>
+        </div>
+
+        <!-- Pantry Actions -->
+        <div class="action-card">
+          <div class="action-card-header">
+            <span class="action-title">saveIngredient(prevState, formData)</span>
+            <span class="action-file">src/app/(protected)/pantry/actions.ts</span>
+          </div>
+          <p>Inserts or updates pantry item. Enforces lowercase name uniqueness per group.</p>
+          <div class="action-detail-grid">
+            <div><strong>Validation:</strong> <code>ingredientSchema</code> (name required, qty/unit optional)</div>
+            <div><strong>Calls:</strong> <code>db.insert/update(ingredients)</code></div>
+            <div><strong>Revalidation:</strong> <code>revalidatePath("/pantry")</code></div>
+          </div>
+        </div>
+
+        <div class="action-card">
+          <div class="action-card-header">
+            <span class="action-title">parsePurchaseAction(text)</span>
+            <span class="action-file">src/app/(protected)/pantry/actions.ts</span>
+          </div>
+          <p>Parses conversational shopping note ("bought 2kg onions, milk") into structured review preview.</p>
+          <div class="action-detail-grid">
+            <div><strong>Rate Limit:</strong> 15/min per user (<code>purchase-ai:${userId}</code>)</div>
+            <div><strong>Calls:</strong> <code>parsePurchase()</code>, <code>mergePreview()</code></div>
+            <div><strong>Output:</strong> Array of `{ name, quantity, unit, status: new|merge|replace }`</div>
+          </div>
+        </div>
+
+        <!-- Settings Actions -->
+        <div class="action-card">
+          <div class="action-card-header">
+            <span class="action-title">signOutEverywhere()</span>
+            <span class="action-file">src/app/(protected)/settings/actions.ts</span>
+          </div>
+          <p>Increments <code>users.token_version</code> in Postgres and writes through to Redis. Invalidates all active JWTs.</p>
+          <div class="action-detail-grid">
+            <div><strong>Mechanism:</strong> Immediate cache write + authSignOut</div>
+            <div><strong>Calls:</strong> <code>revokeUserSessions(userId)</code></div>
+            <div><strong>Revalidation:</strong> Redirects to <code>/login</code></div>
+          </div>
+        </div>
+
+        <div class="action-card">
+          <div class="action-card-header">
+            <span class="action-title">rotateInviteCode()</span>
+            <span class="action-file">src/app/(protected)/settings/actions.ts</span>
+          </div>
+          <p>Admin only. Generates fresh 6-character code (avoiding ambiguous glyphs) with 5-try collision retry.</p>
+          <div class="action-detail-grid">
+            <div><strong>Guard:</strong> Must be group admin</div>
+            <div><strong>Calls:</strong> <code>rotateGroupInviteCode(userId)</code></div>
+            <div><strong>Revalidation:</strong> <code>revalidatePath("/settings")</code></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5 -->
+    <section class="block" id="s5">
+      <h2><span class="num">05</span> Database Tables &amp; Complete Schema Specification</h2>
+      <p class="lead">Defined in <a href="src/db/schema.ts">src/db/schema.ts</a>. Managed by Drizzle ORM across 5 incremental migrations in <a href="drizzle/">drizzle/</a>.</p>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+        <span style="font-size: 0.9rem; color: var(--muted); font-weight: 600;">12 Relational Tables (4 Auth + 8 App)</span>
+        <button type="button" class="toggle-all-btn" id="toggleSchemasBtn">Expand All Schemas</button>
+      </div>
+
+      <!-- Enums -->
+      <div class="callout callout-success">
+        <p><strong>PostgreSQL Enums Reference:</strong></p>
+        <ul style="margin: 0.4rem 0 0; padding-left: 1.1rem;">
+          <li><code>member_role</code>: <code>'admin'</code> | <code>'member'</code> — Group permission tier.</li>
+          <li><code>session_status</code>: <code>'open'</code> (waiting/generating) | <code>'voting'</code> (votes cast, regenerate locked) | <code>'finalized'</code> (meal chosen) | <code>'cancelled'</code>.</li>
+          <li><code>meal_type</code>: <code>'lunch'</code> | <code>'dinner'</code> — Two voting cycles per calendar day.</li>
+          <li><code>dish_source</code>: <code>'seed'</code> (system-defined catalog) | <code>'ai'</code> (discovered &amp; validated via Gemini).</li>
+        </ul>
+      </div>
+
+      <!-- Table 1: users -->
+      <details class="schema-card" open>
+        <summary>
+          <div class="table-name-wrap">
+            <span class="table-name">users</span>
+            <span class="badge badge-pk">PK: id</span>
+            <span class="badge badge-uk">UK: email</span>
+          </div>
+          <span class="table-summary-text">User identity, credential hashes, and revocation version</span>
+        </summary>
+        <div class="schema-content">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Column</th><th>SQL Type</th><th>Nullability</th><th>Default / Expression</th><th>Constraints &amp; Notes</th></tr></thead>
+              <tbody>
+                <tr><td><code>id</code></td><td><code>text</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><code>crypto.randomUUID()</code></td><td><span class="badge badge-pk">PK</span> String UUID</td></tr>
+                <tr><td><code>name</code></td><td><code>text</code></td><td><span class="badge badge-opt">NULLABLE</span></td><td>—</td><td>User display name</td></tr>
+                <tr><td><code>email</code></td><td><code>text</code></td><td><span class="badge badge-opt">NULLABLE</span></td><td>—</td><td><span class="badge badge-uk">UNIQUE</span> Unique login identifier</td></tr>
+                <tr><td><code>email_verified</code></td><td><code>timestamp</code></td><td><span class="badge badge-opt">NULLABLE</span></td><td>—</td><td>Null if unverified; timestamp when confirmed</td></tr>
+                <tr><td><code>image</code></td><td><code>text</code></td><td><span class="badge badge-opt">NULLABLE</span></td><td>—</td><td>OAuth avatar image URL</td></tr>
+                <tr><td><code>password</code></td><td><code>text</code></td><td><span class="badge badge-opt">NULLABLE</span></td><td>—</td><td>Bcrypt hash for Credentials users (null for OAuth)</td></tr>
+                <tr><td><code>token_version</code></td><td><code>integer</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><code>0</code></td><td>Incremented to invalidate all active JWT sessions</td></tr>
+                <tr><td><code>created_at</code></td><td><code>timestamp</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><code>now()</code></td><td>Record creation timestamp</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </details>
+
+      <!-- Table 2: accounts -->
+      <details class="schema-card">
+        <summary>
+          <div class="table-name-wrap">
+            <span class="table-name">accounts</span>
+            <span class="badge badge-pk">Composite PK</span>
+            <span class="badge badge-fk">FK -> users</span>
+          </div>
+          <span class="table-summary-text">Auth.js linked OAuth accounts (Google)</span>
+        </summary>
+        <div class="schema-content">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Column</th><th>SQL Type</th><th>Nullability</th><th>Default / Notes</th></tr></thead>
+              <tbody>
+                <tr><td><code>user_id</code></td><td><code>text</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><span class="badge badge-fk">FK</span> -> <code>users.id</code> ON DELETE CASCADE</td></tr>
+                <tr><td><code>type</code></td><td><code>text</code></td><td><span class="badge badge-req">NOT NULL</span></td><td>OAuth account type ("oauth", "oidc")</td></tr>
+                <tr><td><code>provider</code></td><td><code>text</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><span class="badge badge-pk">PK 1/2</span> e.g. "google"</td></tr>
+                <tr><td><code>provider_account_id</code></td><td><code>text</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><span class="badge badge-pk">PK 2/2</span> Remote subject ID</td></tr>
+                <tr><td><code>refresh_token</code></td><td><code>text</code></td><td><span class="badge badge-opt">NULLABLE</span></td><td>OAuth refresh token</td></tr>
+                <tr><td><code>access_token</code></td><td><code>text</code></td><td><span class="badge badge-opt">NULLABLE</span></td><td>OAuth access token</td></tr>
+                <tr><td><code>expires_at</code></td><td><code>integer</code></td><td><span class="badge badge-opt">NULLABLE</span></td><td>Token expiry UNIX seconds</td></tr>
+                <tr><td><code>token_type</code></td><td><code>text</code></td><td><span class="badge badge-opt">NULLABLE</span></td><td>"Bearer"</td></tr>
+                <tr><td><code>scope</code></td><td><code>text</code></td><td><span class="badge badge-opt">NULLABLE</span></td><td>OAuth requested permissions</td></tr>
+                <tr><td><code>id_token</code></td><td><code>text</code></td><td><span class="badge badge-opt">NULLABLE</span></td><td>OIDC JWT token</td></tr>
+                <tr><td><code>session_state</code></td><td><code>text</code></td><td><span class="badge badge-opt">NULLABLE</span></td><td>Auth state string</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </details>
+
+      <!-- Table 3: sessions -->
+      <details class="schema-card">
+        <summary>
+          <div class="table-name-wrap">
+            <span class="table-name">sessions</span>
+            <span class="badge badge-pk">PK: session_token</span>
+            <span class="badge badge-fk">FK -> users</span>
+          </div>
+          <span class="table-summary-text">Database sessions table (retained by Auth.js schema, unused due to JWT strategy)</span>
+        </summary>
+        <div class="schema-content">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Column</th><th>SQL Type</th><th>Nullability</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td><code>session_token</code></td><td><code>text</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><span class="badge badge-pk">PK</span> Unique session identifier</td></tr>
+                <tr><td><code>user_id</code></td><td><code>text</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><span class="badge badge-fk">FK</span> -> <code>users.id</code> ON DELETE CASCADE</td></tr>
+                <tr><td><code>expires</code></td><td><code>timestamp</code></td><td><span class="badge badge-req">NOT NULL</span></td><td>Session expiration timestamp</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </details>
+
+      <!-- Table 4: verification_tokens -->
+      <details class="schema-card">
+        <summary>
+          <div class="table-name-wrap">
+            <span class="table-name">verification_tokens</span>
+            <span class="badge badge-pk">Composite PK</span>
+          </div>
+          <span class="table-summary-text">Email verification links with SHA-256 digested tokens</span>
+        </summary>
+        <div class="schema-content">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Column</th><th>SQL Type</th><th>Nullability</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td><code>identifier</code></td><td><code>text</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><span class="badge badge-pk">PK 1/2</span> User email address</td></tr>
+                <tr><td><code>token</code></td><td><code>text</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><span class="badge badge-pk">PK 2/2</span> SHA-256 hash of the 32-byte secret link</td></tr>
+                <tr><td><code>expires</code></td><td><code>timestamp</code></td><td><span class="badge badge-req">NOT NULL</span></td><td>Link validity expiry (24 hours from issuance)</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </details>
+
+      <!-- Table 5: groups -->
+      <details class="schema-card" open>
+        <summary>
+          <div class="table-name-wrap">
+            <span class="table-name">groups</span>
+            <span class="badge badge-pk">PK: id</span>
+            <span class="badge badge-uk">UK: invite_code</span>
+          </div>
+          <span class="table-summary-text">The flat unit — shared pantry, sessions, and members</span>
+        </summary>
+        <div class="schema-content">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Column</th><th>SQL Type</th><th>Nullability</th><th>Default / Notes</th></tr></thead>
+              <tbody>
+                <tr><td><code>id</code></td><td><code>uuid</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><span class="badge badge-pk">PK</span> <code>defaultRandom()</code></td></tr>
+                <tr><td><code>name</code></td><td><code>text</code></td><td><span class="badge badge-req">NOT NULL</span></td><td>Flat name (e.g. "Flat 402 Baker Street")</td></tr>
+                <tr><td><code>invite_code</code></td><td><code>text</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><span class="badge badge-uk">UNIQUE</span> 6-character clean alphabet (no 0/O, 1/I)</td></tr>
+                <tr><td><code>timezone</code></td><td><code>text</code></td><td><span class="badge badge-req">NOT NULL</span></td><td>Default <code>'Asia/Kolkata'</code> — controls session date bounds</td></tr>
+                <tr><td><code>created_by</code></td><td><code>text</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><span class="badge badge-fk">FK</span> -> <code>users.id</code> (Creator user)</td></tr>
+                <tr><td><code>created_at</code></td><td><code>timestamp</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><code>now()</code></td></tr>
+                <tr><td><code>updated_at</code></td><td><code>timestamp</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><code>now()</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </details>
+
+      <!-- Table 6: group_members -->
+      <details class="schema-card" open>
+        <summary>
+          <div class="table-name-wrap">
+            <span class="table-name">group_members</span>
+            <span class="badge badge-pk">PK: id</span>
+            <span class="badge badge-idx">Idx: (group, user)</span>
+          </div>
+          <span class="table-summary-text">Membership mapping &amp; authorization roles</span>
+        </summary>
+        <div class="schema-content">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Column</th><th>SQL Type</th><th>Nullability</th><th>Default / Constraints</th></tr></thead>
+              <tbody>
+                <tr><td><code>id</code></td><td><code>uuid</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><span class="badge badge-pk">PK</span> <code>defaultRandom()</code></td></tr>
+                <tr><td><code>group_id</code></td><td><code>uuid</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><span class="badge badge-fk">FK</span> -> <code>groups.id</code> ON DELETE CASCADE</td></tr>
+                <tr><td><code>user_id</code></td><td><code>text</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><span class="badge badge-fk">FK</span> -> <code>users.id</code> ON DELETE CASCADE</td></tr>
+                <tr><td><code>role</code></td><td><code>member_role</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><code>'member'</code> (Values: <code>'admin'</code>, <code>'member'</code>)</td></tr>
+                <tr><td><code>joined_at</code></td><td><code>timestamp</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><code>now()</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p><strong>Indexes:</strong> <span class="badge badge-uk">UNIQUE INDEX</span> <code>group_members_group_user_idx</code> on <code>(group_id, user_id)</code> — guarantees a user belongs to a group at most once.</p>
+        </div>
+      </details>
+
+      <!-- Table 7: ingredients -->
+      <details class="schema-card" open>
+        <summary>
+          <div class="table-name-wrap">
+            <span class="table-name">ingredients</span>
+            <span class="badge badge-pk">PK: id</span>
+            <span class="badge badge-idx">Idx: (group, lower(name))</span>
+          </div>
+          <span class="table-summary-text">The shared pantry inventory</span>
+        </summary>
+        <div class="schema-content">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Column</th><th>SQL Type</th><th>Nullability</th><th>Default / Notes</th></tr></thead>
+              <tbody>
+                <tr><td><code>id</code></td><td><code>uuid</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><span class="badge badge-pk">PK</span> <code>defaultRandom()</code></td></tr>
+                <tr><td><code>group_id</code></td><td><code>uuid</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><span class="badge badge-fk">FK</span> -> <code>groups.id</code> ON DELETE CASCADE</td></tr>
+                <tr><td><code>name</code></td><td><code>text</code></td><td><span class="badge badge-req">NOT NULL</span></td><td>Ingredient name (e.g. "Onion", "Basmati Rice")</td></tr>
+                <tr><td><code>quantity</code></td><td><code>double precision</code></td><td><span class="badge badge-opt">NULLABLE</span></td><td>Numeric amount</td></tr>
+                <tr><td><code>unit</code></td><td><code>text</code></td><td><span class="badge badge-opt">NULLABLE</span></td><td>Unit string ("kg", "g", "bunch", "dozen")</td></tr>
+                <tr><td><code>available</code></td><td><code>boolean</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><code>true</code> — presence flag used by AI suggestions</td></tr>
+                <tr><td><code>created_at</code></td><td><code>timestamp</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><code>now()</code></td></tr>
+                <tr><td><code>updated_at</code></td><td><code>timestamp</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><code>now()</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p><strong>Indexes:</strong> <span class="badge badge-uk">UNIQUE INDEX</span> <code>ingredients_group_lower_name_idx</code> on <code>(group_id, lower(name))</code> — prevents duplicate "Onion" and "onion" rows.</p>
+        </div>
+      </details>
+
+      <!-- Table 8: meal_sessions -->
+      <details class="schema-card" open>
+        <summary>
+          <div class="table-name-wrap">
+            <span class="table-name">meal_sessions</span>
+            <span class="badge badge-pk">PK: id</span>
+            <span class="badge badge-idx">Idx: (group, date, type)</span>
+          </div>
+          <span class="table-summary-text">Daily lunch and dinner voting sessions</span>
+        </summary>
+        <div class="schema-content">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Column</th><th>SQL Type</th><th>Nullability</th><th>Default / Notes</th></tr></thead>
+              <tbody>
+                <tr><td><code>id</code></td><td><code>uuid</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><span class="badge badge-pk">PK</span> <code>defaultRandom()</code></td></tr>
+                <tr><td><code>group_id</code></td><td><code>uuid</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><span class="badge badge-fk">FK</span> -> <code>groups.id</code> ON DELETE CASCADE</td></tr>
+                <tr><td><code>session_date</code></td><td><code>date</code></td><td><span class="badge badge-req">NOT NULL</span></td><td>Calendar date in group's timezone</td></tr>
+                <tr><td><code>meal_type</code></td><td><code>meal_type</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><code>'lunch'</code> | <code>'dinner'</code></td></tr>
+                <tr><td><code>status</code></td><td><code>session_status</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><code>'open'</code> | <code>'voting'</code> | <code>'finalized'</code> | <code>'cancelled'</code></td></tr>
+                <tr><td><code>last_generated_at</code></td><td><code>timestamp</code></td><td><span class="badge badge-opt">NULLABLE</span></td><td>Atomic cooldown anchor for AI generation (30s)</td></tr>
+                <tr><td><code>created_at</code></td><td><code>timestamp</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><code>now()</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p><strong>Indexes:</strong> <span class="badge badge-uk">UNIQUE INDEX</span> <code>meal_sessions_group_date_type_idx</code> on <code>(group_id, session_date, meal_type)</code> — strictly guarantees at most two sessions per flat per calendar day.</p>
+        </div>
+      </details>
+
+      <!-- Table 9: dishes -->
+      <details class="schema-card">
+        <summary>
+          <div class="table-name-wrap">
+            <span class="table-name">dishes</span>
+            <span class="badge badge-pk">PK: id</span>
+            <span class="badge badge-idx">Idx: lower(name)</span>
+          </div>
+          <span class="table-summary-text">Global deduplicated dish catalog</span>
+        </summary>
+        <div class="schema-content">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Column</th><th>SQL Type</th><th>Nullability</th><th>Default / Notes</th></tr></thead>
+              <tbody>
+                <tr><td><code>id</code></td><td><code>uuid</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><span class="badge badge-pk">PK</span> <code>defaultRandom()</code></td></tr>
+                <tr><td><code>name</code></td><td><code>text</code></td><td><span class="badge badge-req">NOT NULL</span></td><td>Dish name (e.g. "Dal Tadka", "Aloo Gobi")</td></tr>
+                <tr><td><code>required_ingredients</code></td><td><code>jsonb</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><code>[]</code> — Array of string ingredient names <code>$type&lt;string[]&gt;()</code></td></tr>
+                <tr><td><code>source</code></td><td><code>dish_source</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><code>'seed'</code> | <code>'ai'</code></td></tr>
+                <tr><td><code>created_at</code></td><td><code>timestamp</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><code>now()</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p><strong>Indexes:</strong> <span class="badge badge-uk">UNIQUE INDEX</span> <code>dishes_lower_name_idx</code> on <code>lower(name)</code> — ensures global catalog remains free of duplicate case variations.</p>
+        </div>
+      </details>
+
+      <!-- Table 10: meal_suggestions -->
+      <details class="schema-card" open>
+        <summary>
+          <div class="table-name-wrap">
+            <span class="table-name">meal_suggestions</span>
+            <span class="badge badge-pk">PK: id</span>
+            <span class="badge badge-fk">FK -> session, user, dish</span>
+          </div>
+          <span class="table-summary-text">The candidates (up to 15) proposed for a specific meal session</span>
+        </summary>
+        <div class="schema-content">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Column</th><th>SQL Type</th><th>Nullability</th><th>Default / Notes</th></tr></thead>
+              <tbody>
+                <tr><td><code>id</code></td><td><code>uuid</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><span class="badge badge-pk">PK</span> <code>defaultRandom()</code></td></tr>
+                <tr><td><code>session_id</code></td><td><code>uuid</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><span class="badge badge-fk">FK</span> -> <code>meal_sessions.id</code> ON DELETE CASCADE</td></tr>
+                <tr><td><code>meal_name</code></td><td><code>text</code></td><td><span class="badge badge-req">NOT NULL</span></td><td>Displayed candidate title</td></tr>
+                <tr><td><code>ai_generated</code></td><td><code>boolean</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><code>true</code> if generated by Gemini; <code>false</code> if manually added</td></tr>
+                <tr><td><code>required_ingredients</code></td><td><code>jsonb</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><code>[]</code> — Ingredient list for pantry matching</td></tr>
+                <tr><td><code>added_by</code></td><td><code>text</code></td><td><span class="badge badge-opt">NULLABLE</span></td><td><span class="badge badge-fk">FK</span> -> <code>users.id</code> ON DELETE SET NULL</td></tr>
+                <tr><td><code>dish_id</code></td><td><code>uuid</code></td><td><span class="badge badge-opt">NULLABLE</span></td><td><span class="badge badge-fk">FK</span> -> <code>dishes.id</code> (Links to catalog entry)</td></tr>
+                <tr><td><code>created_at</code></td><td><code>timestamp</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><code>now()</code> — Earliest suggestion wins ties</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </details>
+
+      <!-- Table 11: votes -->
+      <details class="schema-card" open>
+        <summary>
+          <div class="table-name-wrap">
+            <span class="table-name">votes</span>
+            <span class="badge badge-pk">PK: id</span>
+            <span class="badge badge-idx">Idx: (session, user)</span>
+          </div>
+          <span class="table-summary-text">Live member votes per session</span>
+        </summary>
+        <div class="schema-content">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Column</th><th>SQL Type</th><th>Nullability</th><th>Default / Notes</th></tr></thead>
+              <tbody>
+                <tr><td><code>id</code></td><td><code>uuid</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><span class="badge badge-pk">PK</span> <code>defaultRandom()</code></td></tr>
+                <tr><td><code>session_id</code></td><td><code>uuid</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><span class="badge badge-fk">FK</span> -> <code>meal_sessions.id</code> ON DELETE CASCADE</td></tr>
+                <tr><td><code>suggestion_id</code></td><td><code>uuid</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><span class="badge badge-fk">FK</span> -> <code>meal_suggestions.id</code> ON DELETE CASCADE</td></tr>
+                <tr><td><code>user_id</code></td><td><code>text</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><span class="badge badge-fk">FK</span> -> <code>users.id</code> ON DELETE CASCADE</td></tr>
+                <tr><td><code>created_at</code></td><td><code>timestamp</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><code>now()</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p><strong>Indexes:</strong> <span class="badge badge-uk">UNIQUE INDEX</span> <code>votes_session_user_idx</code> on <code>(session_id, user_id)</code> — enforces exactly one vote per person per session (upsert to change vote).</p>
+        </div>
+      </details>
+
+      <!-- Table 12: finalized_meals -->
+      <details class="schema-card" open>
+        <summary>
+          <div class="table-name-wrap">
+            <span class="table-name">finalized_meals</span>
+            <span class="badge badge-pk">PK: id</span>
+            <span class="badge badge-uk">UK: session_id</span>
+          </div>
+          <span class="table-summary-text">The winning choice — serves as the immutable meal history</span>
+        </summary>
+        <div class="schema-content">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Column</th><th>SQL Type</th><th>Nullability</th><th>Default / Notes</th></tr></thead>
+              <tbody>
+                <tr><td><code>id</code></td><td><code>uuid</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><span class="badge badge-pk">PK</span> <code>defaultRandom()</code></td></tr>
+                <tr><td><code>session_id</code></td><td><code>uuid</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><span class="badge badge-uk">UNIQUE</span> <span class="badge badge-fk">FK</span> -> <code>meal_sessions.id</code> ON DELETE CASCADE</td></tr>
+                <tr><td><code>suggestion_id</code></td><td><code>uuid</code></td><td><span class="badge badge-opt">NULLABLE</span></td><td><span class="badge badge-fk">FK</span> -> <code>meal_suggestions.id</code></td></tr>
+                <tr><td><code>meal_name</code></td><td><code>text</code></td><td><span class="badge badge-req">NOT NULL</span></td><td>The winning meal name</td></tr>
+                <tr><td><code>finalized_by</code></td><td><code>text</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><span class="badge badge-fk">FK</span> -> <code>users.id</code> (Admin who finalized)</td></tr>
+                <tr><td><code>finalized_at</code></td><td><code>timestamp</code></td><td><span class="badge badge-req">NOT NULL</span></td><td><code>now()</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout callout-success">
+            <p><strong>Architecture Note:</strong> There is deliberately no separate "history" table. <code>finalized_meals</code> <em>is</em> the history table. This guarantees history can never drift or desync from actual voting session records.</p>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <!-- 6 -->
+    <section class="block" id="s6">
+      <h2><span class="num">06</span> How Authentication Works (In-Depth)</h2>
+      <p class="lead">Dual-layer authentication combining lightweight Edge decryption with authoritative Server-side database version checking.</p>
+
+      <h3>JWT Session Payload Specification</h3>
+      <p>Tokens are signed with <code>AUTH_SECRET</code> using HS256. Every issued token encapsulates:</p>
+<pre><code>{
+  "sub": "user_12345678-uuid",       // Unique users.id
+  "name": "Arjun Sharma",            // Display name
+  "email": "arjun@example.com",      // Confirmed email
+  "token_version": 2,                // Stamped version from users.token_version
+  "email_verified": "2026-10-14...", // Timestamp of verification
+  "iat": 1728920000,                 // Issued at
+  "exp": 1729524800                  // 7-day expiration (604,800 seconds)
+}</code></pre>
+
+      <h3>Revoking Stateless Sessions (Token Versioning)</h3>
+      <p>Because JWTs are stateless and self-contained, standard JWT setups cannot revoke a single stolen session cookie without invalidating the global secret key. Flatmate solves this via <strong>Token Versioning</strong> in <a href="src/lib/auth-state.ts">src/lib/auth-state.ts</a>:</p>
+      <ol class="steps">
+        <li>Every user has an integer <code>users.token_version</code> (default 0) in Postgres.</li>
+        <li>When signing in, this version number is stamped directly into the JWT payload.</li>
+        <li>On every incoming request, <code>auth()</code> extracts the stamped version and compares it against the active version stored in Redis cache (<code>auth:${userId}</code>, TTL 300s).</li>
+        <li>If Redis misses or is disabled, it reads <code>users.token_version</code> from Postgres and repopulates Redis.</li>
+        <li><strong>Session Revocation ("Sign out everywhere"):</strong> Running <code>revokeUserSessions(userId)</code> executes:
+<pre><code>UPDATE users SET token_version = token_version + 1 WHERE id = $1 RETURNING token_version;</code></pre>
+        And immediately writes the new version through to Redis. All previously issued tokens on all devices immediately fail on their very next request!</li>
+      </ol>
+
+      <h3>Dual Auth.js Configuration Breakdown</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Feature</th><th>Edge Proxy (src/auth.config.ts)</th><th>Server Actions &amp; Pages (src/auth.ts)</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Execution Target</strong></td><td>Vercel Edge Network (Next 16 <code>proxy.ts</code>)</td><td>Node.js Serverless Function Runtime</td></tr>
+            <tr><td><strong>Database Access</strong></td><td><span class="badge badge-req">NONE</span> (Strictly edge safe)</td><td><span class="badge badge-pk">FULL</span> (Drizzle ORM + Neon Postgres)</td></tr>
+            <tr><td><strong>Check Performed</strong></td><td>Decodes JWT; verifies cryptographic signature</td><td>Re-checks <code>token_version</code> and <code>email_verified</code> via Redis/DB</td></tr>
+            <tr><td><strong>Providers Configured</strong></td><td>Routing rules &amp; callbacks only</td><td>Credentials (bcrypt) + Google OAuth provider instances</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Email Verification Security Architecture</h3>
+      <ul>
+        <li><strong>SHA-256 Token Storage:</strong> When a user signs up or requests a link, 32 cryptographic random bytes are generated (<code>crypto.randomBytes(32).toString('hex')</code>). Only the <code>SHA-256</code> hash is stored in <code>verification_tokens(identifier, token, expires)</code>. Even a total database dump exposes zero active verification links.</li>
+        <li><strong>Public Landing:</strong> <code>/verify?token=...&amp;email=...</code> is intentionally public so a flatmate clicking the link on a desktop can confirm the account created on their phone without being logged in on the desktop.</li>
+        <li><strong>Account Hijack Prevention:</strong> <code>allowDangerousEmailAccountLinking</code> is explicitly disabled on Google OAuth. If an attacker registers a target's email with a password, a subsequent Google sign-in by the real owner does not merge accounts. Furthermore, Google's <code>email_verified</code> boolean claim is strictly checked.</li>
+      </ul>
+    </section>
+
+    <!-- 7 -->
+    <section class="block" id="s7">
+      <h2><span class="num">07</span> Route Protection Architecture</h2>
+      <p class="lead">Multi-tiered defensive gating from edge proxy down to individual server actions.</p>
+      
+      <h3>Tier 1: Edge Proxy (<a href="src/proxy.ts">src/proxy.ts</a>)</h3>
+      <p>Next.js 16 replaces traditional <code>middleware.ts</code> with <code>proxy.ts</code> (must export a function named <code>proxy</code>). It evaluates protected route prefixes: <code>/dashboard</code>, <code>/pantry</code>, <code>/history</code>, <code>/settings</code>, <code>/onboarding</code>, and <code>/verify-email</code>.</p>
+
+      <h3>Tier 2: Protected Layout Gate (<a href="src/app/(protected)/layout.tsx">src/app/(protected)/layout.tsx</a>)</h3>
+      <ol class="steps">
+        <li><strong>Authentication Check:</strong> <code>session?.user</code> present? If NO → redirect to <code>/login</code>.</li>
+        <li><strong>Email Verification Check:</strong> <code>session.user.emailConfirmed</code> is true? If NO → redirect to <code>/verify-email</code>. Unverified users cannot view flat data.</li>
+        <li><strong>Group Membership Check:</strong> User belongs to an active flat in <code>group_members</code>? If NO → redirect to <code>/onboarding</code> to create or join a group.</li>
+      </ol>
+
+      <div class="callout">
+        <p><strong>Tier 3: Mandatory Server Action Guards:</strong> A client can dispatch a POST request directly to a Server Action endpoint bypassing layout render cycles. Therefore, every single Server Action in <code>app/*/actions.ts</code> independently invokes <code>auth()</code>, asserts email confirmation, and validates group ownership before executing any database mutation.</p>
+      </div>
+    </section>
+
+    <!-- 8 -->
+    <section class="block" id="s8">
+      <h2><span class="num">08</span> Feature Walkthrough &amp; AI Integration Specifications</h2>
+      
+      <h3>1. AI Meal Suggestions Engine (<a href="src/lib/ai/gemini.ts">src/lib/ai/gemini.ts</a>)</h3>
+      <p>Powered by <code>gemini-2.5-flash</code> via REST API with a 15-second timeout and JSON response schema enforcement.</p>
+      <h4>Exact Prompt Construction</h4>
+<pre><code>You are a meal-planning assistant for flatmates in India.
+Suggest 5 simple, budget-friendly, easy-to-cook ${input.mealType} dishes.
+Available ingredients: ${availableIngredients.join(", ") || "none listed"}.
+Prefer dishes that mostly use the available ingredients; a few may need 1-2 extra common items.
+Recently eaten (do NOT repeat these): ${recentMeals.join(", ") || "none"}.
+For each dish list its key required ingredients as simple lowercase names.
+When a required ingredient matches one of the available ingredients, use the exact spelling from the available list.
+Return ONLY JSON matching the requested schema.</code></pre>
+
+      <h4>Structured Schema Specification</h4>
+<pre><code>// Response Schema enforced at model level
+{
+  type: "ARRAY",
+  items: {
+    type: "OBJECT",
+    properties: {
+      mealName: { type: "STRING" },
+      requiredIngredients: { type: "ARRAY", items: { type: "STRING" } }
+    },
+    required: ["mealName", "requiredIngredients"]
+  }
+}</code></pre>
+
+      <h3>2. Natural Language Pantry Parsing</h3>
+      <p>Flatmates can paste unstructured receipts or chat messages like: <em>"Got 2kg potatoes, 500g paneer, 1 bunch coriander and a pack of bread"</em>.</p>
+      <ul>
+        <li>Gemini parses into structured objects: <code>[{ name: "potato", quantity: 2, unit: "kg" }, { name: "paneer", quantity: 500, unit: "g" }]</code>.</li>
+        <li><strong>Intelligent Merging (<a href="src/lib/pantry/merge.ts">src/lib/pantry/merge.ts</a>):</strong>
+          <ul>
+            <li>If unit matches existing inventory (e.g. both "kg") → quantities are automatically <strong>added</strong>.</li>
+            <li>If units conflict (e.g. existing "bunch" vs incoming "kg") → incoming entry <strong>replaces</strong> existing stock.</li>
+            <li>If item doesn't exist → status is flagged as <strong>new</strong>.</li>
+          </ul>
+        </li>
+      </ul>
+
+      <h3>3. Optimistic Voting &amp; Realtime Polling</h3>
+      <ul>
+        <li><strong>Optimistic UI:</strong> Tapping a meal instantly flips UI state using React 19's <code>useOptimistic</code>, providing sub-16ms interactive response.</li>
+        <li><strong>Tab-Aware Polling:</strong> The voting screen polls every <strong>8 seconds</strong> via <code>visibilitychange</code> listeners — polling suspends when the tab is backgrounded, conserving mobile battery and server bandwidth. Polling automatically terminates once both lunch and dinner are finalized.</li>
+      </ul>
+    </section>
+
+    <!-- 9 -->
+    <section class="block" id="s9">
+      <h2><span class="num">09</span> Concurrency &amp; Race Condition Prevention</h2>
+      <p class="lead">Because multiple flatmates interact simultaneously on their phones, all race vectors are hardened with database-level primitives.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Concurrency Scenario</th><th>Potential Failure</th><th>Architectural Fix &amp; SQL Primitive</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Morning Simultaneous Load</strong></td>
+              <td>Two flatmates open the app at 8:00 AM; two simultaneous session creation queries race.</td>
+              <td>Unique partial index <code>(group_id, session_date, meal_type)</code> combined with <code>ON CONFLICT DO NOTHING</code> absorbs the collision cleanly.</td>
+            </tr>
+            <tr>
+              <td><strong>Regenerate vs In-Flight Vote</strong></td>
+              <td>User A clicks "Regenerate" (deleting suggestions) exactly as User B submits a vote on Dish #3.</td>
+              <td><code>replaceSuggestions</code> executes inside a transaction acquiring a row lock: <code>SELECT status FROM meal_sessions WHERE id = $1 FOR UPDATE</code>. The session status flips to <code>voting</code> immediately when a vote lands, blocking suggestion deletion.</td>
+            </tr>
+            <tr>
+              <td><strong>Finalization Mid-Vote</strong></td>
+              <td>Admin clicks Finalize while a flatmate changes their vote; tally becomes inconsistent.</td>
+              <td><code>finalizeSessionForGroup</code> runs within a transaction with row-level locking: <code>SELECT * FROM meal_sessions FOR UPDATE</code>. Tallying and status transition to <code>finalized</code> occur atomically.</td>
+            </tr>
+            <tr>
+              <td><strong>AI Generation Spamming</strong></td>
+              <td>Multiple users spam the "Regenerate" button to trigger multiple costly Gemini calls.</td>
+              <td>Atomic guarded SQL update:
+<pre style="margin: 0.3rem 0; padding: 0.4rem 0.6rem;"><code>UPDATE meal_sessions 
+SET last_generated_at = now() 
+WHERE id = $1 AND status = 'open' 
+  AND (last_generated_at IS NULL OR last_generated_at &lt; now() - interval '30 seconds') 
+RETURNING id;</code></pre>
+              Only the winner of this atomic update receives a returned row; losers receive an instant cooldown error before any AI call is made.</td>
+            </tr>
+            <tr>
+              <td><strong>Invite Code Collision</strong></td>
+              <td>Random 6-character code matches an existing active group.</td>
+              <td>Unique constraint on <code>groups.invite_code</code> caught by <code>isUniqueViolation</code> error handler; automatically retries generation with exponential backoff up to 5 times.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 10 -->
+    <section class="block" id="s10">
+      <h2><span class="num">10</span> Rate Limiting Registry &amp; Distributed Protection</h2>
+      <p class="lead">Dual-tier sliding window rate limiting: Distributed Upstash Redis in production with automatic fallback to per-process memory.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Target Operation</th><th>Storage Key Pattern</th><th>Max Budget</th><th>Sliding Window</th><th>Defense Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Sign In (Per Email)</strong></td><td><code>rl:signin:${email}</code></td><td>5 requests</td><td>60 seconds</td><td>Stops password brute-force against specific account</td></tr>
+            <tr><td><strong>Sign In (Per IP)</strong></td><td><code>rl:signin-ip:${ip}</code></td><td>20 requests</td><td>60 seconds</td><td>Stops credential-stuffing attacks across varied emails</td></tr>
+            <tr><td><strong>Sign Up (Per Email)</strong></td><td><code>rl:signup:${email}</code></td><td>3 requests</td><td>60 seconds</td><td>Prevents mail verification inbox flooding</td></tr>
+            <tr><td><strong>Sign Up (Per IP)</strong></td><td><code>rl:signup-ip:${ip}</code></td><td>10 requests</td><td>3600 seconds (1 hr)</td><td>Throttles bot registration rings</td></tr>
+            <tr><td><strong>Join Group</strong></td><td><code>rl:join:${userId}</code></td><td>10 requests</td><td>60 seconds</td><td>Prevents brute-forcing 6-character flat invite codes</td></tr>
+            <tr><td><strong>Resend Verification</strong></td><td><code>rl:resend:${userId}</code></td><td>3 requests</td><td>3600 seconds (1 hr)</td><td>Protects Resend transactional email quotas</td></tr>
+            <tr><td><strong>Resend Verification (IP)</strong></td><td><code>rl:resend-ip:${ip}</code></td><td>10 requests</td><td>3600 seconds (1 hr)</td><td>Prevents IP-level email relay exhaustion</td></tr>
+            <tr><td><strong>AI Purchase Parse</strong></td><td><code>rl:purchase-ai:${userId}</code></td><td>15 requests</td><td>60 seconds</td><td>Protects Gemini API quota during pantry entry</td></tr>
+            <tr><td><strong>AI Dish Lookup</strong></td><td><code>rl:dish-ai:${userId}</code></td><td>20 requests</td><td>60 seconds</td><td>Protects Gemini API quota during custom dish search</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 11 -->
+    <section class="block" id="s11">
+      <h2><span class="num">11</span> UI, Theming &amp; Design System</h2>
+      <ul>
+        <li><strong>Theme Name:</strong> <strong>"Honey Butter"</strong> — Tailored warm cream light palette (<code>#FBF1DC</code>) paired with deep espresso dark palette (<code>#191309</code>).</li>
+        <li><strong>Typography:</strong> <em>Plus Jakarta Sans</em> for readable body text and high-legibility numbers, alongside <em>Space Mono</em> for timestamps, invite codes, and system tags.</li>
+        <li><strong>Frosted Glassmorphism (<code>GlassCard</code>):</strong> Styled using <code>backdrop-filter: blur(12px) saturate(140%)</code> with a solid CSS fallback for devices without GPU blur acceleration.</li>
+        <li><strong>Smart Prefetching Strategy:</strong>
+          <ul>
+            <li><code>/pantry</code> and <code>/history</code> are aggressively prefetched in the background so navigating to them is instantaneous with zero skeleton screens.</li>
+            <li><code>/dashboard</code> is <strong>deliberately NOT prefetched</strong>. Pre-rendering cached voting states would display stale vote counts and risk cooking the wrong meal!</li>
+          </ul>
+        </li>
+      </ul>
+    </section>
+
+    <!-- 12 -->
+    <section class="block" id="s12">
+      <h2><span class="num">12</span> Environment Variables Complete Reference</h2>
+      <p class="lead">Validated at process boot in <a href="src/env.ts">src/env.ts</a> via Zod. Startup fails fast with descriptive diagnostics if required keys are missing.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Variable</th><th>Kind</th><th>Format / Example</th><th>Default</th><th>Impact If Absent / Misconfigured</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code>DATABASE_URL</code></td>
+              <td><span class="badge badge-req">REQUIRED</span></td>
+              <td><code>postgresql://user:pass@ep-xxx.neon.tech/neondb?sslmode=require</code></td>
+              <td>—</td>
+              <td>Fatal crash at startup. Neon Postgres connection pool string.</td>
+            </tr>
+            <tr>
+              <td><code>AUTH_SECRET</code></td>
+              <td><span class="badge badge-req">REQUIRED</span></td>
+              <td><code>openssl rand -base64 32</code> (32+ chars)</td>
+              <td>—</td>
+              <td>Fatal crash at startup. Signs and encrypts Auth.js JWT session tokens.</td>
+            </tr>
+            <tr>
+              <td><code>NEXT_PUBLIC_APP_URL</code></td>
+              <td><span class="badge badge-opt">OPTIONAL</span></td>
+              <td><code>https://aajkyabanega.vercel.app</code></td>
+              <td><code>http://localhost:3000</code></td>
+              <td>Controls origin used in emailed verification links.</td>
+            </tr>
+            <tr>
+              <td><code>GEMINI_API_KEY</code></td>
+              <td><span class="badge badge-opt">OPTIONAL</span></td>
+              <td><code>AIzaSy...</code></td>
+              <td>—</td>
+              <td>App boots, but clicking "Suggest Dishes" or "Parse Purchase" returns a descriptive error toast.</td>
+            </tr>
+            <tr>
+              <td><code>AUTH_GOOGLE_ID</code></td>
+              <td><span class="badge badge-opt">OPTIONAL</span></td>
+              <td><code>xxx.apps.googleusercontent.com</code></td>
+              <td>—</td>
+              <td>Google OAuth button is hidden if absent. Both ID and Secret must be set.</td>
+            </tr>
+            <tr>
+              <td><code>AUTH_GOOGLE_SECRET</code></td>
+              <td><span class="badge badge-opt">OPTIONAL</span></td>
+              <td>Google Client Secret</td>
+              <td>—</td>
+              <td>Required alongside <code>AUTH_GOOGLE_ID</code> for OAuth token exchange.</td>
+            </tr>
+            <tr>
+              <td><code>UPSTASH_REDIS_REST_URL</code></td>
+              <td><span class="badge badge-opt">OPTIONAL</span></td>
+              <td><code>https://xxx.upstash.io</code></td>
+              <td>—</td>
+              <td>Falls back to in-memory sliding window rate limits &amp; direct Postgres session checking.</td>
+            </tr>
+            <tr>
+              <td><code>UPSTASH_REDIS_REST_TOKEN</code></td>
+              <td><span class="badge badge-opt">OPTIONAL</span></td>
+              <td>Upstash REST Auth Bearer Token</td>
+              <td>—</td>
+              <td>Required alongside Redis REST URL.</td>
+            </tr>
+            <tr>
+              <td><code>RESEND_API_KEY</code></td>
+              <td><span class="badge badge-opt">OPTIONAL</span></td>
+              <td><code>re_xxx...</code></td>
+              <td>—</td>
+              <td>In development, verification links are printed to the server terminal. In production, fallback is refused.</td>
+            </tr>
+            <tr>
+              <td><code>EMAIL_FROM</code></td>
+              <td><span class="badge badge-opt">OPTIONAL</span></td>
+              <td><code>"Aaj Kya Banega" &lt;noreply@yourdomain.com&gt;</code></td>
+              <td>—</td>
+              <td>Verified sender email in Resend dashboard.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 13 -->
+    <section class="block" id="s13">
+      <h2><span class="num">13</span> Testing &amp; CI Pipeline</h2>
+      <ul>
+        <li><strong>52 Total Test Files</strong> spanning unit, component, and database integration tests.</li>
+        <li><strong>PGlite In-Memory WASM Testing (<a href="src/test/db.ts">src/test/db.ts</a>):</strong> Integration tests run against real Postgres compiled to WebAssembly. Real Drizzle migrations are applied to the memory database, providing authentic transaction and constraint verification without Docker daemon dependencies.</li>
+        <li><strong>Architecture Rule Test (<a href="src/lib/architecture.test.ts">src/lib/architecture.test.ts</a>):</strong> Scans the AST of all files inside <code>src/lib/</code> to enforce that no Next.js dependencies are introduced.</li>
+      </ul>
+      <p><strong>GitHub Actions CI Workflow (<a href=".github/workflows/ci.yml">.github/workflows/ci.yml</a>):</strong></p>
+<pre><code>npm ci → npm run lint → npm run typecheck → npm test → npm run build</code></pre>
+    </section>
+
+    <!-- 14 -->
+    <section class="block" id="s14">
+      <h2><span class="num">14</span> Development Commands</h2>
+<pre><code>npm run dev          # Start local Next.js App Router dev server on :3000
+npm run build        # Compile production bundle and typecheck server components
+npm run lint         # Run ESLint across app, lib, db, and components
+npm run typecheck    # Execute tsc --noEmit to verify full project types
+npm test             # Run Vitest test runner across all 52 test suites
+npm run test:watch   # Start Vitest in interactive watch mode
+
+npm run db:generate  # Introspect src/db/schema.ts and generate new SQL migration in drizzle/
+npm run db:migrate   # Execute pending migrations against target DATABASE_URL
+npm run db:studio    # Launch visual Drizzle Studio web browser for local database inspection</code></pre>
+    </section>
+
+    <!-- 15 -->
+    <section class="block" id="s15">
+      <h2><span class="num">15</span> Quick "Where do I look?" Reference Index</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>I want to inspect or modify...</th><th>File Path</th><th>Key Functions &amp; Exports</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Database Schemas &amp; Types</strong></td><td><a href="src/db/schema.ts">src/db/schema.ts</a></td><td><code>users, groups, ingredients, mealSessions, dishes, votes...</code></td></tr>
+            <tr><td><strong>Auth JWT &amp; Session Tokens</strong></td><td><a href="src/lib/auth-state.ts">src/lib/auth-state.ts</a></td><td><code>currentAuthState(), revokeUserSessions(), markEmailVerified()</code></td></tr>
+            <tr><td><strong>Server Auth Configuration</strong></td><td><a href="src/auth.ts">src/auth.ts</a></td><td><code>auth(), signIn(), signOut()</code></td></tr>
+            <tr><td><strong>Edge Route Gatekeeper</strong></td><td><a href="src/proxy.ts">src/proxy.ts</a></td><td><code>proxy()</code> (Edge route pattern matcher)</td></tr>
+            <tr><td><strong>AI Suggestion Prompts</strong></td><td><a href="src/lib/ai/prompt.ts">src/lib/ai/prompt.ts</a></td><td><code>buildSuggestionPrompt(input)</code></td></tr>
+            <tr><td><strong>Gemini API Execution</strong></td><td><a href="src/lib/ai/gemini.ts">src/lib/ai/gemini.ts</a></td><td><code>generateMealSuggestions(), parsePurchase(), parseDish()</code></td></tr>
+            <tr><td><strong>Vote Tally &amp; Tie Breaking</strong></td><td><a href="src/lib/votes.ts">src/lib/votes.ts</a></td><td><code>pickWinner(), buildVoteState(), castVoteForUser()</code></td></tr>
+            <tr><td><strong>Generation Cooldowns</strong></td><td><a href="src/lib/suggestions.ts">src/lib/suggestions.ts</a></td><td><code>claimGeneration(), replaceSuggestions()</code></td></tr>
+            <tr><td><strong>Pantry Merging Rules</strong></td><td><a href="src/lib/pantry/merge.ts">src/lib/pantry/merge.ts</a></td><td><code>resolveMergedValues(), mergePreview()</code></td></tr>
+            <tr><td><strong>Flat Invite Codes &amp; Roles</strong></td><td><a href="src/lib/groups.ts">src/lib/groups.ts</a></td><td><code>generateInviteCode(), createGroupForUser(), getActiveGroup()</code></td></tr>
+            <tr><td><strong>Rate Limiting Logic</strong></td><td><a href="src/lib/rate-limit.ts">src/lib/rate-limit.ts</a></td><td><code>checkRateLimit(), rateLimit()</code></td></tr>
+            <tr><td><strong>Theme Colors &amp; Styles</strong></td><td><a href="src/app/globals.css">src/app/globals.css</a></td><td><code>@theme inline</code>, CSS variable palette</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 16 -->
+    <section class="block" id="s16">
+      <h2><span class="num">16</span> Things to Remember Before Editing</h2>
+      <div class="callout">
+        <p>⚠️ <strong>Next.js 16 Breaking Conventions:</strong> Read <code>node_modules/next/dist/docs/</code> before editing core routes. Middleware is now configured via <code>proxy.ts</code> exporting <code>proxy</code>. Server Actions are strictly isolated callable endpoints.</p>
+      </div>
+      <ul>
+        <li><strong>The Lib Rule:</strong> Never import <code>next</code> inside <code>src/lib/</code>. If you need cache revalidation, put it in the calling Server Action inside <code>src/app/</code>.</li>
+        <li><strong>Defense in Depth:</strong> Always re-verify session identity and group membership inside Server Actions — page layout redirects do not protect action POST endpoints.</li>
+        <li><strong>Database Migrations:</strong> Never hand-write SQL files in <code>drizzle/</code>. Modify <code>src/db/schema.ts</code> and run <code>npm run db:generate</code>.</li>
+        <li><strong>Cache Invalidation:</strong> Server actions modifying database rows must call <code>revalidatePath("/dashboard")</code> or <code>revalidatePath("/pantry")</code> so clients reflect fresh state.</li>
+        <li><strong>AI Output Safety:</strong> Never trust Gemini JSON blindly. Always pipe model output through Zod parsers in <code>src/lib/ai/parse.ts</code>.</li>
+      </ul>
+    </section>
+
+  </main>
+
+  <footer class="page">
+    <div>FlatMate Meal Planner — Comprehensive Architecture &amp; Codebase Guide</div>
+    <a class="top-link" href="#top">↑ Back to top</a>
+  </footer>
+
+</div>
+
+<script>
+  // Toggle all database schemas
+  const toggleBtn = document.getElementById('toggleSchemasBtn');
+  let allOpen = false;
+  toggleBtn.addEventListener('click', () => {
+    allOpen = !allOpen;
+    document.querySelectorAll('details.schema-card').forEach(d => {
+      d.open = allOpen;
+    });
+    toggleBtn.textContent = allOpen ? 'Collapse All Schemas' : 'Expand All Schemas';
+  });
+
+  // Client-side quick filter
+  const searchInput = document.getElementById('guideSearch');
+  searchInput.addEventListener('input', (e) => {
+    const term = e.target.value.toLowerCase().trim();
+    if (!term) {
+      document.querySelectorAll('section.block, details.schema-card, .action-card').forEach(el => {
+        el.style.display = '';
+      });
+      return;
+    }
+    document.querySelectorAll('details.schema-card').forEach(card => {
+      const text = card.textContent.toLowerCase();
+      if (text.includes(term)) {
+        card.style.display = '';
+        card.open = true;
+      } else {
+        card.style.display = 'none';
+      }
+    });
+    document.querySelectorAll('.action-card').forEach(card => {
+      const text = card.textContent.toLowerCase();
+      card.style.display = text.includes(term) ? '' : 'none';
+    });
+  });
+</script>
+
+</body>
+</html>
