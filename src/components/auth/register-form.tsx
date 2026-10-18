@@ -13,54 +13,91 @@ export function RegisterForm({ googleEnabled = false }: { googleEnabled?: boolea
   const [state, formAction, pending] = useActionState(signUp, initial);
 
   return (
-    <form action={formAction} className="space-y-4">
-      <h1 className="text-2xl font-extrabold">Create account</h1>
+    <form action={formAction} className="space-y-3">
+      <div>
+        <h1 className="text-2xl font-extrabold tracking-tight">Create account</h1>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Start deciding dinners in under 2 minutes with your flatmates.
+        </p>
+      </div>
 
       {googleEnabled ? (
-        <div className="space-y-3">
+        <div className="space-y-2.5 pt-0.5">
           <GoogleButton />
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span className="h-px flex-1 bg-border" />
-            or
+            <span>or sign up with email</span>
             <span className="h-px flex-1 bg-border" />
           </div>
         </div>
       ) : null}
 
       <div className="space-y-1">
-        <label htmlFor="name" className="text-sm font-semibold">Name</label>
+        <label htmlFor="name" className="text-xs font-semibold text-foreground">
+          Name
+        </label>
         <input
-          id="name" name="name" type="text" required autoComplete="name"
-          className="w-full rounded-lg border bg-card px-3 py-2"
+          id="name"
+          name="name"
+          type="text"
+          required
+          autoComplete="name"
+          placeholder="Your name"
+          className="w-full rounded-lg border border-border bg-card px-3.5 py-2 text-sm transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none placeholder:text-muted-foreground/60"
         />
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="email" className="text-sm font-semibold">Email</label>
+        <label htmlFor="email" className="text-xs font-semibold text-foreground">
+          Email address
+        </label>
         <input
-          id="email" name="email" type="email" required autoComplete="email"
-          className="w-full rounded-lg border bg-card px-3 py-2"
+          id="email"
+          name="email"
+          type="email"
+          required
+          autoComplete="email"
+          placeholder="name@flat.com"
+          className="w-full rounded-lg border border-border bg-card px-3.5 py-2 text-sm transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none placeholder:text-muted-foreground/60"
         />
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="password" className="text-sm font-semibold">Password</label>
+        <label htmlFor="password" className="text-xs font-semibold text-foreground">
+          Password
+        </label>
         <input
-          id="password" name="password" type="password" required autoComplete="new-password"
-          className="w-full rounded-lg border bg-card px-3 py-2"
+          id="password"
+          name="password"
+          type="password"
+          required
+          autoComplete="new-password"
+          placeholder="••••••••"
+          className="w-full rounded-lg border border-border bg-card px-3.5 py-2 text-sm transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none placeholder:text-muted-foreground/60"
         />
       </div>
 
-      {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-      {state.message ? <p className="text-sm text-primary">{state.message}</p> : null}
+      {state.error ? (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-1.5 text-xs text-destructive">
+          {state.error}
+        </div>
+      ) : null}
 
-      <Button type="submit" disabled={pending} className="w-full">
+      {state.message ? (
+        <div className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs text-primary">
+          {state.message}
+        </div>
+      ) : null}
+
+      <Button type="submit" disabled={pending} className="w-full h-9.5 font-semibold shadow-sm cursor-pointer">
         {pending ? "Creating…" : "Create account"}
       </Button>
 
-      <p className="text-center text-sm text-muted-foreground">
-        Have an account?{" "}
-        <Link href="/login" className="font-semibold text-primary">Log in</Link>
+      <p className="text-center text-xs text-muted-foreground pt-0.5">
+        Already have an account?{" "}
+        <Link href="/login" className="font-semibold text-primary hover:underline">
+          Log in
+        </Link>
       </p>
     </form>
   );

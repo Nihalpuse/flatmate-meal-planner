@@ -15,7 +15,7 @@ const PROTECTED_PREFIXES = [
 /** Edge-safe config: no DB, no providers — used by the proxy for route protection. */
 export const authConfig = {
   trustHost: true,
-  pages: { signIn: "/login" },
+  pages: { signIn: "/login", error: "/login" },
   // Credentials sign-in forces the jwt strategy: @auth/core always encodes a token
   // for it and never calls adapter.createSession, so the sessions table can never be
   // used while password login exists. 7 days rather than the 30-day default, because
