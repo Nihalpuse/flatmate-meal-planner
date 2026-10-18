@@ -9,5 +9,12 @@ export default async function RegisterPage() {
   if (session?.user) redirect("/dashboard");
 
   const googleEnabled = Boolean(env.AUTH_GOOGLE_ID && env.AUTH_GOOGLE_SECRET);
-  return <RegisterForm googleEnabled={googleEnabled} />;
+  return (
+    <div className="flex min-h-screen items-center justify-center p-4">
+      <div className="w-full max-w-sm">
+        <RegisterForm googleEnabled={googleEnabled} />
+      </div>
+    </div>
+  );
 }
+
